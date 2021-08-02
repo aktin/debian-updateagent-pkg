@@ -1,0 +1,2 @@
+APT::Update::Post-Invoke {"/usr/bin/__PACKAGE__-info";};
+

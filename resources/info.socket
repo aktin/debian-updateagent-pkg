@@ -1,0 +1,12 @@
+[Unit]
+Description=AKTIN Update Info Socket
+
+[Socket]
+ListenStream=1002
+Accept=Yes
+SocketUser=wildfly
+SocketGroup=wildfly
+
+[Install]
+WantedBy=sockets.target
+

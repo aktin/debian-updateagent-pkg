@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+
+mkdir -p "__AKTINUPDATEDIR__"
+
+INSTALLED=$(LC_ALL=C apt-cache policy "aktin-notaufnahme-dwh" | sed -nE 's/^\s*Installed:\s*(.*)$/\1/p')
+CANDIDATE=$(LC_ALL=C apt-cache policy "aktin-notaufnahme-dwh" | sed -nE 's/^\s*Candidate:\s*(.*)$/\1/p')
+
+cat <<EOF >"__AKTINUPDATEDIR__/info"
+version.installed=$INSTALLED
+version.candidate=$CANDIDATE
+version.time=$(date)
+EOF
+

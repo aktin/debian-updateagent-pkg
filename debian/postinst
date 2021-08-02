@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+readonly RES='\e[0m'
+readonly RED='\e[0;31m'
+readonly GRE='\e[0;32m'
+readonly YEL='\e[0;33m'
+readonly BRED='\e[1;31m'
+readonly BGRE='\e[1;32m'
+readonly BYEL='\e[1;33m'
+
+systemctl daemon-reload
+systemctl enable __PACKAGE__.socket __PACKAGE__-info.socket
+systemctl start __PACKAGE__.socket __PACKAGE__-info.socket
+

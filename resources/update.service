@@ -1,0 +1,10 @@
+[Unit]
+Description=AKTIN Update Service
+After=network.target
+
+[Service]
+ExecStart=__PACKAGE__
+
+[Install]
+WantedBy=default.target
+
