@@ -9,6 +9,8 @@ readonly BRED='\e[1;31m'
 readonly BGRE='\e[1;32m'
 readonly BYEL='\e[1;33m'
 
+mkdir -p /var/lib/aktin/update
+
 systemctl daemon-reload
 systemctl enable __PACKAGE__.socket __PACKAGE__-info.socket
 systemctl start __PACKAGE__.socket __PACKAGE__-info.socket
