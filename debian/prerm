@@ -4,3 +4,5 @@ set -euo pipefail
 systemctl stop __PACKAGE__.socket __PACKAGE__-info.socket
 systemctl disable __PACKAGE__.socket __PACKAGE__-info.socket
 
+rm -rf /var/lib/aktin/update
+
