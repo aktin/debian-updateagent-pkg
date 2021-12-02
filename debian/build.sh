@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+PACKAGE="aktin-notaufnahme-updateagent"
+
 # Required parameters
-PACKAGE="${1}"
-VERSION="${2}"
+VERSION="${1}"
 
 # Check if variables are empty
-if [ -z "${PACKAGE}" ]; then echo "\$PACKAGE is empty."; exit 1; fi
 if [ -z "${VERSION}" ]; then echo "\$VERSION is empty."; exit 1; fi
 
 # Directory this script is located in
