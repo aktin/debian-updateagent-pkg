@@ -3,17 +3,14 @@ set -euo pipefail
 
 mkdir -p "__AKTINUPDATEDIR__"
 
-apt install aktin-notaufnahme-dwh >"__AKTINUPDATEDIR__/log" 2>&1
-
-if [ $! -eq 0 ]; then
-	SUCCESS="true"
+if ! { apt install aktin-notaufnahme-dwh >"__AKTINUPDATEDIR__/log" 2>&1 || echo E: update failed; } | grep -q '^[WE]:'; then
+    SUCCESS="true"
 else
-	SUCCESS="false"
+    SUCCESS="false"
 fi
 
 cat <<EOF >"__AKTINUPDATEDIR__/result"
 update.success=$SUCCESS
 update.time=$(date)
-}
 EOF
 
