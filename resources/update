@@ -5,6 +5,7 @@ mkdir -p "__AKTINUPDATEDIR__"
 
 if ! { apt install aktin-notaufnahme-dwh >"__AKTINUPDATEDIR__/log" 2>&1 || echo E: update failed; } | grep -q '^[WE]:'; then
     SUCCESS="true"
+    nc -w 2 127.0.0.1 1002
 else
     SUCCESS="false"
 fi
