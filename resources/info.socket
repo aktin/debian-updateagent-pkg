@@ -2,10 +2,11 @@
 Description=AKTIN Update Info Socket
 
 [Socket]
-ListenStream=1002
+ListenStream=127.0.0.1:1002
 Accept=Yes
 SocketUser=wildfly
 SocketGroup=wildfly
+StandardOutput=socket
 
 [Install]
 WantedBy=sockets.target
