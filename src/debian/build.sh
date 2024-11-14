@@ -76,26 +76,37 @@ init_build_environment() {
 
 #####################################
 
-function sedvars() {
-	mkdir -p "$(dirname "$2")"
-	sed -e "s|__AKTINUPDATEDIR__|/var/lib/aktin/update|g" \
-	    -e "s|__PACKAGE__|${PACKAGE_NAME}|g" \
-	    -e "s|__VERSION__|${PACKAGE_VERSION}|g" \
-	    "${1}" > "${2}"
-}
 
 function build_linux() {
-	sedvars "${DIR_RESOURCES}/update" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
 	sedvars "${DIR_RESOURCES}/update.service" "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}@.service"
 	sedvars "${DIR_RESOURCES}/update.socket" "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}.socket"
-	sedvars "${DIR_RESOURCES}/info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
-	sedvars "${DIR_RESOURCES}/apt.update.post-invoke" "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-info"
 	sedvars "${DIR_RESOURCES}/info.service" "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info@.service"
 	sedvars "${DIR_RESOURCES}/info.socket" "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info.socket"
-	chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
+
+	sedvars "${DIR_RESOURCES}/apt.update.post-invoke" "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-info"
+
+	sedvars "${DIR_RESOURCES}/info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
 }
 
 #####################################
+
+prepare_service_files() {
+  local dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
+  local update_dir="/var/lib/aktin/update"
+  echo "Preparing update agent service files..."
+
+  # Replace placeholders
+  mkdir -p "${DIR_BUILD}/usr/bin"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
+
+  #mkdir -p "${DIR_BUILD}/lib/systemd/system"
+
+
+
+  # Set proper executable permissions
+  chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
+}
 
 prepare_management_scripts_and_files() {
   local dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"

@@ -1,0 +1,24 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  __PACKAGE_NAME__-info
+# Version:      1.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Date:         14 Nov 24
+# Purpose:      Service script to collect DWH package version information
+#--------------------------------------
+
+set -euo pipefail
+
+# Ensure update directory exists
+mkdir -p "__AKTIN_UPDATE_DIR__"
+
+# Get package versions
+installed=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Installed:\s*(.*)$/\1/p')
+candidate=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Candidate:\s*(.*)$/\1/p')
+
+# Write version info
+cat <<EOF >"__AKTIN_UPDATE_DIR__/info"
+version.installed=${installed}
+version.candidate=${candidate}
+version.time=$(date)
+EOF
