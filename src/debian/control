@@ -1,9 +1,12 @@
-Package: __PACKAGE__
-Version: __VERSION__
+Package: __PACKAGE_NAME__
+Version: __PACKAGE_VERSION__
 Section: science
 Priority: optional
 Architecture: all
-Depends: unattended-upgrades
+Depends: __DWH_PACKAGE_NAME__, unattended-upgrades
 Maintainer: AKTIN IT <it-support@aktin.org>
-Description: AKTIN Datawarehouse Update-Agent in Notaufnahmen
-
+Homepage: https://www.aktin.org/
+Description: AKTIN Emergency Department Update Agent Package
+ This package installs and configures the AKTIN Emergency Department Update Agent
+ which manages automated updates of the AKTIN DWH system. It provides socket
+ services to monitor and execute DWH package updates and reports update status.

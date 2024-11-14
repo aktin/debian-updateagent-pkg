@@ -1,17 +1,54 @@
 #!/bin/bash
-set -euo pipefail
+#--------------------------------------
+# Script Name:  postinst
+# Version:      1.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Date:         14 Nov 24
+# Purpose:      Configures the package after files are unpacked by initializing services, databases, and required configurations to make the package operational.
+#--------------------------------------
 
-readonly RES='\e[0m'
-readonly RED='\e[0;31m'
-readonly GRE='\e[0;32m'
-readonly YEL='\e[0;33m'
-readonly BRED='\e[1;31m'
-readonly BGRE='\e[1;32m'
-readonly BYEL='\e[1;33m'
+log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
+log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
+log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
+log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
 
-mkdir -p /var/lib/aktin/update
+readonly OPERATION="${1}"
 
-systemctl daemon-reload
-systemctl enable __PACKAGE__.socket __PACKAGE__-info.socket
-systemctl start __PACKAGE__.socket __PACKAGE__-info.socket
+init_update_directory() {
+  log_info "Creating AKTIN update directory..."
+  if ! mkdir -p /var/lib/aktin/update; then
+    log_error "Failed to create update directory"
+    exit 1
+  fi
+  log_success "Update directory created"
+}
 
+setup_socket_services() {
+  log_info "Configuring socket services..."
+  if ! systemctl daemon-reload; then
+    log_error "Failed to reload systemd daemon"
+    exit 1
+  fi
+  if ! systemctl enable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
+    log_error "Failed to enable socket services"
+    exit 1
+  fi
+  if ! systemctl start __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
+    log_error "Failed to start socket services"
+    exit 1
+  fi
+  log_success "Socket services initialized"
+}
+
+main() {
+  set -euo pipefail
+  case "$OPERATION" in
+    configure)
+      # Runs during installation/upgrade after files have been unpacked
+      init_update_directory
+      setup_socket_services
+      ;;
+  esac
+}
+
+main "$@"
