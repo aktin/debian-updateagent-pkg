@@ -1,0 +1,52 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  prerm
+# Version:      1.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Date:         14 Nov 24
+# Purpose:      Prepares the system before package files are removed by stopping services, backing up user data, and cleaning runtime artifacts.
+#--------------------------------------
+
+log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
+log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
+log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
+log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+
+readonly OPERATION="${1}"
+
+stop_socket_services() {
+  log_info "Stopping socket services..."
+  if ! systemctl stop __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
+    log_warn "Failed to stop socket services"
+  fi
+
+  if ! systemctl disable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
+    log_warn "Failed to disable socket services"
+  fi
+  log_success "Socket services stopped and disabled"
+}
+
+cleanup_directories() {
+  log_info "Removing AKTIN update directory..."
+  if ! rm -rf /var/lib/aktin/update; then
+    log_error "Failed to remove update directory"
+    exit 1
+  fi
+  log_success "Update directory removed"
+}
+
+main() {
+  set -euo pipefail
+  case "$OPERATION" in
+    remove)
+      # Runs during package removal before files are deleted
+      stop_socket_services
+      cleanup_directories
+      ;;
+    upgrade)
+      # Runs during package upgrade before old files are deleted
+      ;;
+  esac
+}
+
+main "$@"

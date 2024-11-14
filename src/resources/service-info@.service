@@ -1,0 +1,21 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__-info@.service
+# Version:      1.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Date:         14 Nov 24
+# Purpose:      Service unit for AKTIN update info checks
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Update-Info Service
+After=network.target
+
+[Service]
+ExecStart=apt update
+# Restart on failure but not too frequently
+Restart=on-failure
+StartLimitBurst=3
+StartLimitIntervalSec=300
+
+[Install]
+WantedBy=multi-user.target
