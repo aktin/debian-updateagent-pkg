@@ -23,6 +23,15 @@ init_update_directory() {
   log_success "Update directory created"
 }
 
+set_wildfly_permissions() {
+  log_info "Setting Wildfly permissions for update directory..."
+  if ! chown -R wildfly:wildfly /var/lib/aktin/update; then
+    log_error "Failed to set Wildfly permissions"
+    exit 1
+  fi
+  log_success "Wildfly permissions set successfully"
+}
+
 setup_socket_services() {
   log_info "Configuring socket services..."
   if ! systemctl daemon-reload; then
@@ -46,6 +55,7 @@ main() {
     configure)
       # Runs during installation/upgrade after files have been unpacked
       init_update_directory
+      set_wildfly_permissions
       setup_socket_services
       ;;
   esac
