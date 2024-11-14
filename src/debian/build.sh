@@ -4,7 +4,8 @@
 # Version:      1.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
 # Date:         14 Nov 24
-# Purpose:      TODO
+# Purpose:      Builds the AKTIN update agent Debian package. Creates service files, management scripts, and builds the final package with proper
+#               versioning and dependencies.
 #--------------------------------------
 
 set -euo pipefail
@@ -74,22 +75,6 @@ init_build_environment() {
   fi
 }
 
-#####################################
-
-
-function build_linux() {
-	sedvars "${DIR_RESOURCES}/update.service" "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}@.service"
-	sedvars "${DIR_RESOURCES}/update.socket" "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}.socket"
-	sedvars "${DIR_RESOURCES}/info.service" "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info@.service"
-	sedvars "${DIR_RESOURCES}/info.socket" "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info.socket"
-
-	sedvars "${DIR_RESOURCES}/apt.update.post-invoke" "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-info"
-
-	sedvars "${DIR_RESOURCES}/info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
-}
-
-#####################################
-
 prepare_service_files() {
   local dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
   local update_dir="/var/lib/aktin/update"
@@ -100,9 +85,14 @@ prepare_service_files() {
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
 
-  #mkdir -p "${DIR_BUILD}/lib/systemd/system"
+  mkdir -p "${DIR_BUILD}/lib/systemd/system"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}.socket"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}@.service"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-info.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info.socket"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info@.service"
 
-
+  mkdir -p "${DIR_BUILD}/etc/apt/apt.conf.d"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/apt.update.post-invoke" > "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-info"
 
   # Set proper executable permissions
   chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"

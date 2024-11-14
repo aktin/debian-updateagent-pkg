@@ -1,0 +1,21 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__@.service
+# Version:      1.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Date:         14 Nov 24
+# Purpose:      Service unit for AKTIN update execution
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Update Service
+After=network.target
+
+[Service]
+ExecStart=__PACKAGE_NAME__
+# Restart on failure but not too frequently
+Restart=on-failure
+StartLimitBurst=3
+StartLimitIntervalSec=300
+
+[Install]
+WantedBy=multi-user.target

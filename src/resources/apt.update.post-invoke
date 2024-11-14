@@ -1,2 +1,10 @@
-APT::Update::Post-Invoke {"/usr/bin/__PACKAGE__-info";};
+# ----------------------------------------------
+# File Name:    99__PACKAGE_NAME__-info
+# Version:      1.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Date:         14 Nov 24
+# Purpose:      APT hook to trigger version info update after package lists are updated
+# ----------------------------------------------
 
+# Run version info check after each apt update
+APT::Update::Post-Invoke {"/usr/bin/__PACKAGE_NAME__-info";};
