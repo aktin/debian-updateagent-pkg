@@ -1,9 +1,9 @@
 #!/bin/bash
 #--------------------------------------
 # Script Name:  build.sh
-# Version:      1.0
+# Version:      1.1
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         14 Nov 24
+# Date:         06 Dec 24
 # Purpose:      Builds the AKTIN update agent Debian package. Creates service files, management scripts, and builds the final package with proper
 #               versioning and dependencies.
 #--------------------------------------
@@ -13,12 +13,12 @@ set -euo pipefail
 readonly PACKAGE_NAME="aktin-notaufnahme-updateagent"
 
 CLEANUP=false
-PACKAGE_VERSION=""
+SKIP_BUILD=false
 
 usage() {
-  echo "Usage: $0 <PACKAGE_VERSION> [--cleanup]" >&2
-  echo "  PACKAGE_VERSION    Version number for the package (must start with a number)" >&2
+  echo "Usage: $0 [--cleanup] [--skip-deb-build]" >&2
   echo "  --cleanup          Optional: Remove build directory after package creation" >&2
+  echo "  --skip-deb-build   Optional: Skip the debian package build step" >&2
   exit 1
 }
 
@@ -28,40 +28,31 @@ while [[ $# -gt 0 ]]; do
       CLEANUP=true
       shift
       ;;
+    --skip-deb-build)
+      SKIP_BUILD=true
+      shift
+      ;;
     -h|--help)
       usage
       ;;
     *)
-      if [[ -z "${PACKAGE_VERSION}" ]]; then
-        PACKAGE_VERSION="$1"
-      else
-        echo "Error: Unexpected argument '$1'" >&2
-        usage
-      fi
-      shift
+      echo "Error: Unexpected argument '$1'" >&2
+      usage
       ;;
   esac
 done
 
-if [[ -z "${PACKAGE_VERSION}" ]]; then
-  PACKAGE_VERSION="${PACKAGE_VERSION:-${1:-}}"
-fi
-readonly PACKAGE_VERSION="${PACKAGE_VERSION:-${1:-}}"
-if [[ -z "${PACKAGE_VERSION}" ]]; then
-  echo "Error: PACKAGE_VERSION is not specified." >&2
-  echo "Usage: $0 <PACKAGE_VERSION>" >&2
-  exit 1
-elif ! [[ "${PACKAGE_VERSION}" =~ ^[0-9] ]]; then
-  echo "Error: PACKAGE_VERSION must start with a number." >&2
-  echo "Example: 1.0.0, 2.1.0-rc1" >&2
-  exit 1
-fi
-
 # Define relevant directories as absolute paths
-readonly DIR_CURRENT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly DIR_SRC="$(dirname "${DIR_CURRENT}")"
-readonly DIR_BUILD="${DIR_SRC}/build/${PACKAGE_NAME}_${PACKAGE_VERSION}"
+readonly DIR_DEBIAN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly DIR_SRC="$(dirname "${DIR_DEBIAN}")"
 readonly DIR_RESOURCES="${DIR_SRC}/resources"
+readonly DIR_DOWNLOADS="${DIR_SRC}/downloads"
+
+# Load version-specific variables from file
+set -a
+. "${DIR_RESOURCES}/versions"
+set +a
+readonly DIR_BUILD="${DIR_SRC}/build/${PACKAGE_NAME}_${PACKAGE_VERSION}"
 
 clean_up_build_environment() {
   echo "Cleaning up previous build environment..."
@@ -104,20 +95,24 @@ prepare_management_scripts_and_files() {
   mkdir -p "${DIR_BUILD}/DEBIAN"
 
   # Replace placeholders
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__PACKAGE_VERSION__|${PACKAGE_VERSION}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" "${DIR_CURRENT}/control" > "${DIR_BUILD}/DEBIAN/control"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_CURRENT}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_CURRENT}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__PACKAGE_VERSION__|${PACKAGE_VERSION}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" "${DIR_DEBIAN}/control" > "${DIR_BUILD}/DEBIAN/control"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
 
   # Set proper executable permissions
   chmod 0755 "${DIR_BUILD}/DEBIAN/"*
 }
 
 build_package() {
-  echo "Building Debian package..."
-  dpkg-deb --build "${DIR_BUILD}"
-  if [[ "${CLEANUP}" == true ]]; then
-    echo "Cleaning up build directory..."
-    rm -rf "${DIR_BUILD}"
+  if [[ "${SKIP_BUILD}" == false ]]; then
+    echo "Building Debian package..."
+    dpkg-deb --build "${DIR_BUILD}"
+    if [[ "${CLEANUP}" == true ]]; then
+      echo "Cleaning up build directory..."
+      rm -rf "${DIR_BUILD}"
+    fi
+  else
+    echo "Debian build skipped"
   fi
 }
 
