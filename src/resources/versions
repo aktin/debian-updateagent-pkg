@@ -1,1 +1,17 @@
+################################################################################
+# Version Format:
+#   {version}~{prerelease}-{debian_revision}
+#   Example: 1.6~rc1-1
+#
+# Version Components:
+# - {version}: Value of AKTIN_DWH_VERSION without rc (i.e., 1.6)
+# - ~{prerelease}: Pre-release identifier (if applicable)
+#   - Uses tilde (~) to ensure pre-releases sort before final releases
+#   - Example: 1.6~rc1 if AKTIN_DWH_VERSION is 1.6rc1
+# - -{debian_revision}: Debian package revision number
+#   - Increments with package changes
+#   - Starts at 1 for each new version
+#
+################################################################################
+
 PACKAGE_VERSION=1.6~rc1-2
