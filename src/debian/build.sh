@@ -14,11 +14,13 @@ readonly PACKAGE_NAME="aktin-notaufnahme-updateagent"
 
 CLEANUP=false
 SKIP_BUILD=false
+FULL_CLEAN=false
 
 usage() {
-  echo "Usage: $0 [--cleanup] [--skip-deb-build]" >&2
+  echo "Usage: $0 [--cleanup] [--skip-deb-build] [--full-clean]" >&2
   echo "  --cleanup          Optional: Remove build directory after package creation" >&2
   echo "  --skip-deb-build   Optional: Skip the debian package build step" >&2
+  echo "  --full-clean       Optional: Remove build and downloads directories before starting" >&2
   exit 1
 }
 
@@ -30,6 +32,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-deb-build)
       SKIP_BUILD=true
+      shift
+      ;;
+    --full-clean)
+      FULL_CLEAN=true
       shift
       ;;
     -h|--help)
@@ -57,6 +63,11 @@ readonly DIR_BUILD="${DIR_SRC}/build/${PACKAGE_NAME}_${PACKAGE_VERSION}"
 clean_up_build_environment() {
   echo "Cleaning up previous build environment..."
   rm -rf "${DIR_BUILD}"
+  if [[ "${FULL_CLEAN}" == true ]]; then
+    echo "Performing full clean..."
+    rm -rf "${DIR_SRC}/build"
+    rm -rf "${DIR_DOWNLOADS}"
+  fi
 }
 
 init_build_environment() {
