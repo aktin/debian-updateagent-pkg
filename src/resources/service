@@ -13,7 +13,7 @@ set -euo pipefail
 mkdir -p "__AKTIN_UPDATE_DIR__"
 
 # Perform update and capture result
-if ! { apt install "__DWH_PACKAGE_NAME__" > "__AKTIN_UPDATE_DIR__/log" 2>&1 || echo E: update failed; } | grep -q '^[WE]:'; then
+if ! { apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install "__DWH_PACKAGE_NAME__" > "__AKTIN_UPDATE_DIR__/log" 2>&1 || echo E: update failed; } | grep -q '^[WE]:'; then
   success="true"
 else
   success="false"
