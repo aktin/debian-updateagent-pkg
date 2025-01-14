@@ -14,6 +14,12 @@ mkdir -p "__AKTIN_UPDATE_DIR__"
 
 # Perform update and capture result
 if ! { apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install "__DWH_PACKAGE_NAME__" > "__AKTIN_UPDATE_DIR__/log" 2>&1 || echo E: update failed; } | grep -q '^[WE]:'; then
+  # Dirty workout-around, replace as soon as possible
+  # The restart is needed because package updates may leave deployments
+  # in failed state until WildFly is restarted.
+  systemctl daemon-reload
+  systemctl restart wildfly.service
+  sleep 30
   success="true"
 else
   success="false"
