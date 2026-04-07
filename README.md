@@ -16,6 +16,8 @@ sudo apt-get install -f  # Install missing dependencies if any
 ## Components
 - Update execution service (Port 1003)
 - Version info service (Port 1002)
+- Docker update execution service (Port 1005)
+- Docker version info service (Port 1004)
 - APT hook for automatic version checks
 - Status monitoring and logging system
 
@@ -44,6 +46,8 @@ Options:
 - `info`: Contains current and candidate version information
 - `log`: Update execution logs
 - `result`: Update execution results with success status
+- `docker-info`: Placeholder output for Docker version information
+- `docker-result`: Placeholder output for Docker update execution
 
 ## Support
 For support, contact: [it-support@aktin.org](mailto:it-support@aktin.org)

@@ -38,11 +38,11 @@ setup_socket_services() {
     log_error "Failed to reload systemd daemon"
     exit 1
   fi
-  if ! systemctl enable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
+  if ! systemctl enable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket __PACKAGE_NAME__-docker.socket __PACKAGE_NAME__-docker-info.socket; then
     log_error "Failed to enable socket services"
     exit 1
   fi
-  if ! systemctl start __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
+  if ! systemctl start __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket __PACKAGE_NAME__-docker.socket __PACKAGE_NAME__-docker-info.socket; then
     log_error "Failed to start socket services"
     exit 1
   fi

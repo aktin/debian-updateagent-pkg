@@ -16,11 +16,11 @@ readonly OPERATION="${1}"
 
 stop_socket_services() {
   log_info "Stopping socket services..."
-  if ! systemctl stop __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
+  if ! systemctl stop __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket __PACKAGE_NAME__-docker.socket __PACKAGE_NAME__-docker-info.socket; then
     log_warn "Failed to stop socket services"
   fi
 
-  if ! systemctl disable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
+  if ! systemctl disable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket __PACKAGE_NAME__-docker.socket __PACKAGE_NAME__-docker-info.socket; then
     log_warn "Failed to disable socket services"
   fi
   log_success "Socket services stopped and disabled"

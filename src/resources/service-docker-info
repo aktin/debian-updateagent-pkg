@@ -1,0 +1,21 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  __PACKAGE_NAME__-docker-info
+# Version:      1.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Date:         07 Apr 26
+# Purpose:      Placeholder service script for Docker-based update information
+#--------------------------------------
+
+set -euo pipefail
+
+# Ensure update directory exists
+mkdir -p "__AKTIN_UPDATE_DIR__"
+
+# Placeholder for future Docker update info logic
+cat <<EOF >"__AKTIN_UPDATE_DIR__/docker-info"
+version.installed=
+version.candidate=
+version.time=$(date)
+version.message=not_implemented
+EOF

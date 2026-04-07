@@ -1,0 +1,20 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__-docker@.service
+# Version:      1.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Date:         07 Apr 26
+# Purpose:      Service unit for Docker update execution
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Docker Update Service
+After=network.target
+
+[Service]
+ExecStart=__PACKAGE_NAME__-docker
+Restart=on-failure
+StartLimitBurst=3
+StartLimitIntervalSec=300
+
+[Install]
+WantedBy=multi-user.target

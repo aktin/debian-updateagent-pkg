@@ -86,18 +86,24 @@ prepare_service_files() {
   mkdir -p "${DIR_BUILD}/usr/bin"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service-docker" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service-docker-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info"
 
   mkdir -p "${DIR_BUILD}/lib/systemd/system"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}.socket"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}@.service"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-info.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info.socket"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info@.service"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-docker.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker.socket"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-docker@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker@.service"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-docker-info.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker-info.socket"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-docker-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker-info@.service"
 
   mkdir -p "${DIR_BUILD}/etc/apt/apt.conf.d"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/apt.update.post-invoke" > "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-info"
 
   # Set proper executable permissions
-  chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
+  chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info"
 }
 
 prepare_management_scripts_and_files() {
