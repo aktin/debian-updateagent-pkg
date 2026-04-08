@@ -12,10 +12,15 @@ set -euo pipefail
 # Ensure update directory exists
 mkdir -p "__AKTIN_UPDATE_DIR__"
 
+client_ip="${REMOTE_ADDR:-}"
+client_port="${REMOTE_PORT:-}"
+
 # Placeholder for future Docker update info logic
 cat <<EOF >"__AKTIN_UPDATE_DIR__/docker-info"
 version.installed=
 version.candidate=
 version.time=$(date)
 version.message=not_implemented
+request.client_ip=${client_ip}
+request.client_port=${client_port}
 EOF
