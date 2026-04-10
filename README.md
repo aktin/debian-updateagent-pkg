@@ -13,6 +13,14 @@ sudo dpkg -i aktin-notaufnahme-updateagent_<version>.deb
 sudo apt-get install -f  # Install missing dependencies if any
 ```
 
+The base package installs without requiring an AKTIN DWH instance. Instance-specific runtime setup is handled separately:
+
+```bash
+sudo /usr/lib/aktin-notaufnahme-updateagent/instance-setup configure
+```
+
+That helper applies host-coupled configuration such as `wildfly` ownership and enabling or starting the socket units.
+
 ## Components
 - Update execution service (Port 1003)
 - Version info service (Port 1002)
