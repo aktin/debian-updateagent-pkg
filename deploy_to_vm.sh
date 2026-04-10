@@ -1,7 +1,7 @@
 #!/bin/bash
 
-server_user="root"
-server_ip="192.168.122.50"
+server_user="$1"
+server_ip="$2"
 host="$server_user@$server_ip"
 ctl="$HOME/.ssh/cm-%r@%h:%p"
 
