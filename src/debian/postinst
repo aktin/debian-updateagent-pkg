@@ -13,50 +13,49 @@ log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
 
 readonly OPERATION="${1}"
+readonly UPDATE_DIR="/var/lib/aktin/update"
+readonly INSTANCE_SETUP_SCRIPT="/usr/lib/__PACKAGE_NAME__/instance-setup"
 
 init_update_directory() {
   log_info "Creating AKTIN update directory..."
-  if ! mkdir -p /var/lib/aktin/update; then
+  if ! mkdir -p "${UPDATE_DIR}"; then
     log_error "Failed to create update directory"
     exit 1
   fi
   log_success "Update directory created"
 }
 
-set_wildfly_permissions() {
-  log_info "Setting Wildfly permissions for update directory..."
-  if ! chown -R wildfly:wildfly /var/lib/aktin/update; then
-    log_error "Failed to set Wildfly permissions"
-    exit 1
+reload_systemd() {
+  if command -v systemctl >/dev/null 2>&1; then
+    log_info "Reloading systemd daemon..."
+    if ! systemctl daemon-reload; then
+      log_error "Failed to reload systemd daemon"
+      exit 1
+    fi
+    log_success "Systemd daemon reloaded"
+  else
+    log_warn "systemctl is not available; skipping daemon reload"
   fi
-  log_success "Wildfly permissions set successfully"
 }
 
-setup_socket_services() {
-  log_info "Configuring socket services..."
-  if ! systemctl daemon-reload; then
-    log_error "Failed to reload systemd daemon"
-    exit 1
+print_instance_setup_hint() {
+  if [[ -x "${INSTANCE_SETUP_SCRIPT}" ]]; then
+    log_info "Instance-specific setup is available via:"
+    log_info "  ${INSTANCE_SETUP_SCRIPT} configure"
+  else
+    log_warn "Instance setup helper is not available at ${INSTANCE_SETUP_SCRIPT}"
   fi
-  if ! systemctl enable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket __PACKAGE_NAME__-docker.socket __PACKAGE_NAME__-docker-info.socket; then
-    log_error "Failed to enable socket services"
-    exit 1
-  fi
-  if ! systemctl start __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket __PACKAGE_NAME__-docker.socket __PACKAGE_NAME__-docker-info.socket; then
-    log_error "Failed to start socket services"
-    exit 1
-  fi
-  log_success "Socket services initialized"
 }
 
 main() {
   set -euo pipefail
   case "$OPERATION" in
     configure)
-      # Runs during installation/upgrade after files have been unpacked
+      # Runs during installation/upgrade after files have been unpacked.
+      # Host-specific setup is intentionally deferred to the instance helper.
       init_update_directory
-      set_wildfly_permissions
-      setup_socket_services
+      reload_systemd
+      print_instance_setup_hint
       ;;
   esac
 }

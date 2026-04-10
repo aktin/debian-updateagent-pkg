@@ -1,0 +1,70 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  preinst
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         10 Apr 26
+# Purpose:      Checks target system for requirements. Cancel installation if environment is insufficient
+#--------------------------------------
+
+log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
+log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
+log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
+log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+
+readonly OPERATION="${1}"
+readonly UPDATE_DIR="/var/lib/aktin/update"
+readonly DEBIAN_SERVICE="/etc/systemd/system/wildfly.service"
+
+# Requirement: Any kind of dwh has to be installed
+is_installed_debian() {
+  [[ -f $DEBIAN_SERVICE ]] || return 1   # return 1 when service file does not exist
+  return 0
+}
+
+is_installed_docker() {
+  command -v docker >/dev/null 2>&1 || return 1   # return 1 if docker is not in PATH
+
+  # check repositories of installed images
+  local required="
+ghcr.io/aktin/notaufnahme-dwh-wildfly
+ghcr.io/aktin/notaufnahme-dwh-httpd
+ghcr.io/aktin/notaufnahme-dwh-database
+"
+  local installed=$(docker images --format "{{.Repository}}")
+  for img in $required; do
+    if ! echo "$installed" | grep -qx "$img"; then
+      return 1  # return 1 if any required image-repository does not exist
+    fi
+  done
+  return 0
+}
+
+
+main() {
+  set -euo pipefail
+  case "$OPERATION" in
+    install)
+      # Runs during package installation before unpacking archive.
+      set +e
+      is_installed_debian
+      debian_status=$?
+      is_installed_docker
+      docker_status=$?
+      set -e
+
+      log_info "debian dwh status: $debian_status"
+      log_info "docker dwh status: $docker_status"
+
+      if ! is_installed_debian && ! is_installed_docker; then
+        log_error "No Data Warehouse found, cancel installation of updateagent"
+        exit 1
+      fi
+      ;;
+    upgrade)
+      # Runs during package upgrade before unpacking new archive.
+      ;;
+  esac
+}
+
+main "$@"
