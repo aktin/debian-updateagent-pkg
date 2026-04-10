@@ -38,15 +38,6 @@ reload_systemd() {
   fi
 }
 
-print_instance_setup_hint() {
-  if [[ -x "${INSTANCE_SETUP_SCRIPT}" ]]; then
-    log_info "Instance-specific setup is available via:"
-    log_info "  ${INSTANCE_SETUP_SCRIPT} configure"
-  else
-    log_warn "Instance setup helper is not available at ${INSTANCE_SETUP_SCRIPT}"
-  fi
-}
-
 main() {
   set -euo pipefail
   case "$OPERATION" in
@@ -55,7 +46,7 @@ main() {
       # Host-specific setup is intentionally deferred to the instance helper.
       init_update_directory
       reload_systemd
-      print_instance_setup_hint
+      "${INSTANCE_SETUP_SCRIPT}" configure
       ;;
   esac
 }
