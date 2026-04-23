@@ -14,7 +14,7 @@ log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
 
 readonly OPERATION="${1}"
 readonly UPDATE_DIR="/var/lib/aktin/update"
-readonly INSTANCE_SETUP_SCRIPT="/usr/lib/__PACKAGE_NAME__/instance-setup"
+readonly INSTANCE_SETUP_SCRIPT="/usr/lib/__PACKAGE_NAME__/socket-setup"
 
 read_preinst_summary() {
   source summary_aktin-updateagent_preinstall.txt
