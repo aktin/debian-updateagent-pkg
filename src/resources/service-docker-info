@@ -16,7 +16,7 @@ client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
 # Placeholder for future Docker update info logic
-cat <<EOF >"__AKTIN_UPDATE_DIR__/docker-info"
+cat <<EOF >"__AKTIN_UPDATE_DIR__/info"
 version.installed=
 version.candidate=
 version.time=$(date)

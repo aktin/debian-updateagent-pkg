@@ -31,26 +31,10 @@ require_wildfly_user() {
   fi
 }
 
-require_systemd() {
-  log_info "Checking for systemd"
-  if ! command -v systemctl >/dev/null 2>&1; then
-    log_error "systemctl is required for instance setup but is not available."
-    exit 1
-  fi
-}
-
 init_update_directory() {
   log_info "Creating AKTIN update directory..."
   mkdir -p "${UPDATE_DIR}"
   log_success "Update directory created"
-}
-
-ensure_wildfly_user() {
-  if ! getent passwd wildfly >/dev/null; then
-    log_warn "Wildfly user not found, creating one instead"
-    sudo adduser wildfly
-    log_success "Wildfly user created"
-  fi
 }
 
 set_wildfly_permissions() {
@@ -100,8 +84,7 @@ main() {
 
   case "${operation}" in
     configure)
-      ensure_wildfly_user
-      require_wildfly_user
+#      require_wildfly_user
       require_systemd
       init_update_directory
       set_wildfly_permissions

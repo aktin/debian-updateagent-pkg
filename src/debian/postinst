@@ -16,6 +16,10 @@ readonly OPERATION="${1}"
 readonly UPDATE_DIR="/var/lib/aktin/update"
 readonly INSTANCE_SETUP_SCRIPT="/usr/lib/__PACKAGE_NAME__/instance-setup"
 
+read_preinst_summary() {
+  source summary_aktin-updateagent_preinstall.txt
+}
+
 init_update_directory() {
   log_info "Creating AKTIN update directory..."
   if ! mkdir -p "${UPDATE_DIR}"; then
@@ -23,6 +27,22 @@ init_update_directory() {
     exit 1
   fi
   log_success "Update directory created"
+}
+
+docker_init_update_directories() {
+  local volumes_basedir="/var/lib/docker/volumes/"
+  find "$volumes_basedir" -type d -name "*_aktin_data" -print0 |
+  while IFS= read -r -d '' dir; do
+    log_info "found docker data path: $dir"
+    local update_dir="$dir/_data/update"
+    mkdir -p "$update_dir"
+    log_success "created update dir: $update_dir"
+  done
+}
+
+init_update_directories() {
+  [ debian_installed ] && init_update_directory
+  [ docker_installed ] && docker_init_update_directories
 }
 
 reload_systemd() {
@@ -44,7 +64,7 @@ main() {
     configure)
       # Runs during installation/upgrade after files have been unpacked.
       # Host-specific setup is intentionally deferred to the instance helper.
-      init_update_directory
+      init_update_directories
       reload_systemd
       "${INSTANCE_SETUP_SCRIPT}" configure
       ;;
