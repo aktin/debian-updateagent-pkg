@@ -103,10 +103,10 @@ prepare_service_files() {
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/apt.update.post-invoke" > "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-info"
 
   mkdir -p "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/instance-setup" > "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/instance-setup"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/socket-setup" > "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/socket-setup"
 
   # Set proper executable permissions
-  chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info" "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/instance-setup"
+  chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info" "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/socket-setup"
 }
 
 prepare_management_scripts_and_files() {

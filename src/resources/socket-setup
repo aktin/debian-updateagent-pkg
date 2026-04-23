@@ -1,6 +1,6 @@
 #!/bin/bash
 #--------------------------------------
-# Script Name:  __PACKAGE_NAME__-instance-setup
+# Script Name:  __PACKAGE_NAME__-socket-setup
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
 # Date:         09 Apr 26
@@ -85,7 +85,7 @@ main() {
   case "${operation}" in
     configure)
 #      require_wildfly_user
-      require_systemd
+#      require_systemd
       init_update_directory
       set_wildfly_permissions
       setup_socket_services
