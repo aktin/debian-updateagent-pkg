@@ -13,16 +13,40 @@ log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
 
 readonly OPERATION="${1}"
-readonly INSTANCE_SETUP_SCRIPT="/usr/lib/__PACKAGE_NAME__/socket-setup"
+readonly SOCKET_MANAGEMENT_SCRIPT="/usr/lib/__PACKAGE_NAME__/socket-setup"
+
+
+rm_update_directory() {
+  if [[ -d "__AKTIN_UPDATE_DIR__" ]]; then
+    rm -r "__AKTIN_UPDATE_DIR__"
+    log_success "Removed debian update directory at: __AKTIN_UPDATE_DIR__"
+  fi
+}
+
+docker_rm_update_directories() {
+  # todo: inject this value in build.sh
+  local volumes_basedir="/var/lib/docker/volumes/"
+  find "$volumes_basedir" -type d -wholename "*_aktin_data/_data/update" |
+  while IFS= read -r -d '' dir; do
+    rm -r "$dir"
+    log_success "removed docker update folder: $dir"
+  done
+}
+
+rm_update_directories() {
+  rm_update_directory
+  docker_rm_update_directories
+}
+
 
 run_instance_cleanup() {
-  if [[ -x "${INSTANCE_SETUP_SCRIPT}" ]]; then
+  if [[ -x "${SOCKET_MANAGEMENT_SCRIPT}" ]]; then
     log_info "Running instance-specific cleanup..."
-    if ! "${INSTANCE_SETUP_SCRIPT}" remove; then
+    if ! "${SOCKET_MANAGEMENT_SCRIPT}" remove; then
       log_warn "Instance-specific cleanup reported an error"
     fi
   else
-    log_warn "Instance setup helper not found at ${INSTANCE_SETUP_SCRIPT}; skipping instance cleanup"
+    log_warn "Instance setup helper not found at ${SOCKET_MANAGEMENT_SCRIPT}; skipping instance cleanup"
   fi
 }
 
@@ -32,6 +56,7 @@ main() {
     remove)
       # Runs during package removal before files are deleted.
       run_instance_cleanup
+      rm_update_directories
       ;;
     upgrade)
       # Runs during package upgrade before old files are deleted.

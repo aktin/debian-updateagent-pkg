@@ -15,6 +15,8 @@ readonly PACKAGE_NAME="aktin-notaufnahme-updateagent"
 CLEANUP=false
 SKIP_BUILD=false
 FULL_CLEAN=false
+update_dir="/var/lib/aktin/update"
+dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
 
 usage() {
   echo "Usage: $0 [--cleanup] [--skip-deb-build] [--full-clean]" >&2
@@ -78,8 +80,6 @@ init_build_environment() {
 }
 
 prepare_service_files() {
-  local dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
-  local update_dir="/var/lib/aktin/update"
   echo "Preparing update agent service files..."
 
   # Replace placeholders
@@ -110,13 +110,12 @@ prepare_service_files() {
 }
 
 prepare_management_scripts_and_files() {
-  local dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
   echo "Preparing Debian package management files..."
   mkdir -p "${DIR_BUILD}/DEBIAN"
 
   # Replace placeholders
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__PACKAGE_VERSION__|${PACKAGE_VERSION}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" "${DIR_DEBIAN}/control" > "${DIR_BUILD}/DEBIAN/control"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/preinst" > "${DIR_BUILD}/DEBIAN/preinst"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
 
