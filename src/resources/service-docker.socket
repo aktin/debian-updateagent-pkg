@@ -10,7 +10,7 @@
 Description=AKTIN Docker Update Socket
 
 [Socket]
-ListenStream=127.0.0.1:1005
+ListenStream=0.0.0.0:1005
 Accept=Yes
 SocketUser=wildfly
 SocketGroup=wildfly

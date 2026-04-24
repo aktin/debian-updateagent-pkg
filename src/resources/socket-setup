@@ -68,11 +68,6 @@ stop_socket_services() {
   log_success "Socket services stopped and disabled"
 }
 
-cleanup_update_directory() {
-  log_info "Removing AKTIN update directory..."
-  rm -rf "${UPDATE_DIR}"
-  log_success "Update directory removed"
-}
 
 usage() {
   echo "Usage: $0 <configure|remove>" >&2
@@ -92,7 +87,7 @@ main() {
       ;;
     remove)
       stop_socket_services
-      cleanup_update_directory
+      # todo: function to delete sockets
       ;;
     *)
       usage
