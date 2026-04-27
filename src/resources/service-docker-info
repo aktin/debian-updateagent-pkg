@@ -9,18 +9,57 @@
 
 set -euo pipefail
 
-# Ensure update directory exists
-mkdir -p "__AKTIN_UPDATE_DIR__"
-
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
+#source summary_aktin-updateagent_preinstall.txt
 
-# Placeholder for future Docker update info logic
-cat <<EOF >"__AKTIN_UPDATE_DIR__/info"
+# read TCP message or leave empty if none
+compose_dir=""
+dwh_prefix=""
+update_dir=""
+
+mkdir -p "__AKTIN_UPDATE_DIR__"
+
+request_message=""
+IFS= read -r -t 2 request_message || true
+
+compose_location=""
+case "$request_message" in
+  compose.location=*)
+    compose_location="${request_message#compose.location=}"
+    ;;
+esac
+
+cat <<EOF > "__AKTIN_UPDATE_DIR__/info.txt"
 version.installed=
 version.candidate=
 version.time=$(date)
-version.message=not_implemented
+version.message=${request_message}
 request.client_ip=${client_ip}
 request.client_port=${client_port}
 EOF
+
+
+#
+#echo "$date" >> "__AKTIN_UPDATE_DIR__/info.txt"
+#echo "$client_ip" >> "__AKTIN_UPDATE_DIR__/info.txt"
+#echo "$client_port" >> "__AKTIN_UPDATE_DIR__/info.txt"
+
+#if IFS= read -r -t 2 -N 1024 compose_dir; then
+#    compose_dir="$(printf '%s' "$compose_dir" | tr -d '\000-\010\013\014\016-\037\177' | tr '\r\n' '  ')"
+#    dwh_prefix="$(basename $compose_dir)"
+#    update_dir=$(find -type d -name $dwh_prefix"_aktin_data") "/_data/update"
+#else
+#    exit 1  # no tcp-message received
+#fi
+
+# Placeholder for future Docker update info logic
+#cat <<EOF > "__AKTIN_UPDATE_DIR__/info.txt"
+#version.installed=
+#version.candidate=
+#version.time=$(date)
+#version.message=not_implemented
+#request.client_ip=${client_ip}
+#request.client_port=${client_port}
+#dir=${$update_dir}
+#EOF

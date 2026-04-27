@@ -29,15 +29,28 @@ init_update_directory() {
   log_success "Update directory created"
 }
 
+#save_array() {
+#  local arr="$1"
+#  local var_name="$2"
+#  printf "$var_name" '=(\n' > summary_aktin-updateagent_preinstall.txt
+#  for dir in "${arr[@]}"; do
+#      printf '  %q\n' "$dir" >> summary_aktin-updateagent_preinstall.txt
+#  done
+#  printf ')\n' >> summary_aktin-updateagent_preinstall.txt
+#}
+
 docker_init_update_directories() {
   local volumes_basedir="/var/lib/docker/volumes/"
-  find "$volumes_basedir" -type d -name "*_aktin_data" -print0 |
+  declare -a aktin_dirs=()
+
   while IFS= read -r -d '' dir; do
-    log_info "found docker data path: $dir"
-    local update_dir="$dir/_data/update"
-    mkdir -p "$update_dir"
-    log_success "created update dir: $update_dir"
-  done
+      log_info "found docker data path: $dir"
+#      aktin_dirs+=("$dir")
+      update_dir="$dir/_data/update"
+      mkdir -p "$update_dir"
+      log_success "created update dir: $update_dir"
+  done < <(find "$volumes_basedir" -type d -name "*_aktin_data" -print0)
+#  save_array "$aktin_dirs" "aktin_dirs"
 }
 
 init_update_directories() {

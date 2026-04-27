@@ -15,6 +15,8 @@ mkdir -p "__AKTIN_UPDATE_DIR__"
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
+
+
 # Placeholder for future Docker update execution logic
 cat <<EOF >"__AKTIN_UPDATE_DIR__/docker-result"
 update.success=false

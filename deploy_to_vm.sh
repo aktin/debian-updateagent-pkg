@@ -24,7 +24,7 @@ ssh_command() {
 
 
 # build debian package
-./src/debian/build.sh --cleanup
+./src/debian/build.sh #--cleanup
 
 # get last created debian package
 deb=$(find . -name "aktin-notaufnahme-updateagent*.deb" -printf "%T@ %p\n" | sort -nr | head -n1 | cut -d' ' -f2-)
