@@ -82,7 +82,7 @@ main() {
 #      require_wildfly_user
 #      require_systemd
       init_update_directory
-      set_wildfly_permissions
+#      set_wildfly_permissions
       setup_socket_services
       ;;
     remove)
