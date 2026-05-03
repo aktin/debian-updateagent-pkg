@@ -27,5 +27,9 @@ jobs:
 
       - name: Install updateagent package
         run: |
-          DEB_NAME=find -type f -name "*.deb"
+          DEB_NAME=$(find -type f -name "*.deb")
           dpkg -i "src/build/$DEB_NAME"
+
+      - name: Verify installation
+        run: |
+          sudo apt-cache policy "$DEB_NAME"
