@@ -15,10 +15,10 @@ jobs:
           pwd
           ls -lah
           
-      - name: Install build dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential debhelper devscripts
+#      - name: Install build dependencies
+#        run: |
+#          sudo apt update
+#          sudo apt install -y build-essential debhelper devscripts
 
       - name: Build updateagent package
         run: |
