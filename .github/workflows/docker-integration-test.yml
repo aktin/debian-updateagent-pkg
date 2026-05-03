@@ -1,0 +1,11 @@
+name: docker-integration-test.yml
+run-name: Testing changes from user ${{ github.actor }}
+on: [push]
+
+jobs:
+  updateagent-install:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - run: echo "Installing updateagent"
+
