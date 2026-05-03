@@ -27,7 +27,9 @@ jobs:
 
       - name: Install updateagent package
         run: |
-          DEB_NAME=$(find -type f -name "*.deb")
+          DEB_PATH=$(find -type f -name "*.deb")
+          echo "$DEB_PATH"
+          DEB_NAME=$(basename "$DEB_PATH")
           echo "$DEB_NAME"
           sudo dpkg -i "src/build/$DEB_NAME"
 
