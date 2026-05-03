@@ -14,5 +14,18 @@ jobs:
         run: |
           pwd
           ls -lah
-        
+          
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential debhelper devscripts
 
+      - name: Build updateagent package
+        run: |
+          chmod +x ./src/debian/build.sh
+          ./src/debian/build.sh --cleanup
+
+      - name: Install updateagent package
+        run: |
+          DEB_NAME=find -type f -name "*.deb"
+          dpkg -i "src/build/$DEB_NAME"
