@@ -3,8 +3,8 @@ run-name: Testing changes from user ${{ github.actor }}
 on: [ push ]
 
 env:
-  PORT: 8081
-  API: localhost:${{ env.PORT }}/aktin/admin/rest
+  PORT: 8080
+  API: localhost:8080/aktin/admin/rest
   COMPOSE: https://github.com/aktin/docker-aktin-dwh/releases/download/v1.6rc1-3-db01-wf01-httpd01/compose.yml
 
 jobs:
