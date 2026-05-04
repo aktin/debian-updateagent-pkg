@@ -94,7 +94,7 @@ jobs:
         run: |
           echo "$(sudo docker ps)"
           sleep 10s
-          TOKEN=$(curl -s -X POST "${{ env.API }}"/auth/login -H 'Content-Type: application/json' -d '{"username":"${{ secrets.USERNAME }}","password":"${{ secrets.PASSWORD }}"}')
+          TOKEN=$(curl -s -X POST ${{ env.API }}/auth/login -H 'Content-Type: application/json' -d '{"username":"${{ secrets.USERNAME }}","password":"${{ secrets.PASSWORD }}"}')
           echo "Got token: $TOKEN"
           echo "TOKEN=$TOKEN" >> "$GITHUB_ENV"
 #          echo $(curl -H "Authorization: Bearer ${{ env.TOKEN }}" "${{ env.API }}/auth/check")
