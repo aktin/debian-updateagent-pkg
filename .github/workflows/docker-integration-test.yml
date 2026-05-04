@@ -82,9 +82,10 @@ jobs:
 
       - name: Find debian file
         run: |
-          DEB_PATH=$(find . -type f -name "*.deb" | head -n 1)
-          echo "DEB_PATH=$DEB_PATH" >> "$GITHUB_ENV"
-          echo "Found debian package: $DEB_PATH"
+          DEB_PATH_VM=$(find . -type f -name "*.deb" | head -n 1)
+          echo "DEB_PATH_VM=$DEB_PATH_VM" >> "$GITHUB_ENV"
+          echo "Found debian package: $DEB_PATH_VM"
+          echo "DEB_NAME=$(basename $DEB_PATH_VM)" >> "$GITHUB_ENV"
 
       - name: Install required packages for debian file
         run: |
@@ -92,7 +93,7 @@ jobs:
 
       - name: Install debian package
         run: |
-          sudo dpkg -i "$DEB_PATH"
+          sudo dpkg -i "$DEB_PATH_VM"
 
       - name: Verify installation
         run: |
