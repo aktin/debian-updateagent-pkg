@@ -50,13 +50,13 @@ jobs:
           sudo apt update
           sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-      - name: Install DWH (Docker)
+      - name: Install DWH (Docker, old release)
         run: |
           mkdir -p /opt/docker-deploy/aktin-dwh/dwh1
           chown -R $USER:$USER /opt/docker-deploy/aktin-dwh/
           chmod 750 /opt/docker-deploy/aktin-dwh/dwh1
           cd /opt/docker-deploy/aktin-dwh/dwh1
-          curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
+          curl -LO https://github.com/aktin/docker-aktin-dwh/releases/download/v1.6rc1-3-db01-wf01-httpd01/compose.yml
           openssl rand -base64 32 > secret.txt
           echo "HTTP_PORT=8080" > .env
           docker compose up -d
