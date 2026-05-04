@@ -73,6 +73,10 @@ jobs:
           echo "DEB_PATH=$DEB_PATH" >> "$GITHUB_ENV"
           echo "Found debian package: $DEB_PATH"
 
+      - name: Install required packages for debian file
+        run: |
+          sudo apt install unattended-upgrades
+
       - name: Install debian package
         run: |
           sudo dpkg -i "$DEB_PATH"
