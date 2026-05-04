@@ -26,10 +26,27 @@ jobs:
           name: deb-file
           path: ${{ env.DEB_PATH }}
 
-  updateagent-install:
+
+  updateagent-test:
     needs: updateagent-build
     runs-on: ubuntu-22.04
     steps:
+      - name: Install DWH (Debian)
+        run: |
+          sudo apt update
+          sudo apt install -y ca-certificates
+          sudo wget -O - https://www.aktin.org/software/repo/org/apt/conf/aktin.gpg.key | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/aktin.gpg
+          echo "deb https://www.aktin.org/software/repo/org/apt jammy main" | sudo tee /etc/apt/sources.list.d/aktin.list
+          sudo apt update
+          sudo apt install -y aktin-notaufnahme-i2b2
+          sudo apt install -y aktin-notaufnahme-dwh
+
+      - name: Verify installation
+        run: |
+            sudo systemctl status wildfly
+          
+          
+
       - name: Load already-built debian package
         uses: actions/download-artifact@v4
         with:
