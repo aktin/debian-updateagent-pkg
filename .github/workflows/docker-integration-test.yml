@@ -83,6 +83,7 @@ jobs:
       - name: Find debian file
         run: |
           DEB_PATH=$(find . -type f -name "*.deb" | head -n 1)
+          echo "DEB_PATH=$DEB_PATH" >> "$GITHUB_ENV"
           echo "Found debian package: $DEB_PATH"
 
       - name: Install required packages for debian file
