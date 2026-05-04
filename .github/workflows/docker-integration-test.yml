@@ -67,7 +67,7 @@ jobs:
       
       - name: Replace DWH EAR
         run: |
-          EAR_PATH=$(find . -type f -name "dwh*.ear"|head -n 1)
+          EAR_PATH=$(find test -type f -name "dwh*.ear"|head -n 1)
           sudo docker exec --user root dwh1-wildfly-1 bash -c "rm -r /opt/wildfly/standalone/deployments/dwh*"
           sudo docker cp $EAR_PATH dwh1-wildfly-1:/opt/wildfly/standalone/deployments
           cd /opt/docker-deploy/aktin-dwh/dwh1
