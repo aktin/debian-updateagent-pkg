@@ -12,8 +12,6 @@ Description=AKTIN Docker Update Socket
 [Socket]
 ListenStream=0.0.0.0:1005
 Accept=Yes
-SocketUser=wildfly
-SocketGroup=wildfly
 StandardOutput=socket
 
 [Install]

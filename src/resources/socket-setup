@@ -46,7 +46,10 @@ set_wildfly_permissions() {
 setup_socket_services() {
   log_info "Enabling and starting socket services..."
   systemctl daemon-reload
+  log_info "deamon reloaded"
   systemctl enable "${SOCKET_UNITS[@]}"
+  log_info "${SOCKET_UNITS[@]}"
+  log_info "sockets enabled"
   systemctl start "${SOCKET_UNITS[@]}"
   log_success "Socket services initialized"
 }
@@ -82,7 +85,7 @@ main() {
 #      require_wildfly_user
 #      require_systemd
       init_update_directory
-      set_wildfly_permissions
+#      set_wildfly_permissions
       setup_socket_services
       ;;
     remove)
