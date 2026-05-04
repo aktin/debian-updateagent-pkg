@@ -60,6 +60,9 @@ jobs:
           openssl rand -base64 32 > secret.txt
           echo "HTTP_PORT=8080" > .env
           docker compose up -d
+
+      - name: Verify Docker DWH
+        run: |
           echo "$(sudo docker ps)"
 
       - name: Load already-built debian package
