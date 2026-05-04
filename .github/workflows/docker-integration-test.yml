@@ -1,0 +1,66 @@
+name: docker-integration-test.yml
+run-name: Testing changes from user ${{ github.actor }}
+on: [push]
+
+jobs:
+  updateagent-build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build updateagent package
+        run: |
+          chmod +x ./src/debian/build.sh
+          ./src/debian/build.sh --cleanup
+
+      - name: Find debian file
+        run: |
+          DEB_PATH=$(find . -type f -name "*.deb" | head -n 1)
+          echo "DEB_PATH=$DEB_PATH" >> "$GITHUB_ENV"
+          echo "Found debian package: $DEB_PATH"
+
+      - name: Upload debian file
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-file
+          path: ${{ env.DEB_PATH }}
+
+  updateagent-install:
+    needs: updateagent-build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Load already-built debian package
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-file
+
+      - name: Find debian file
+        run: |
+          DEB_PATH=$(find . -type f -name "*.deb" | head -n 1)
+          echo "DEB_PATH=$DEB_PATH" >> "$GITHUB_ENV"
+          echo "Found debian package: $DEB_PATH"
+
+      - name: Install debian package
+        run: |
+          sudo dpkg -i "$DEB_PATH"
+
+      - name: Verify installation
+        run: |
+          sudo apt-cache policy "$DEB_NAME"
+
+
+#    steps:
+#      - name: Install DWH (Debian)
+#        run: |
+#          sudo apt update
+#          sudo apt install -y ca-certificates
+#          sudo wget -O - https://www.aktin.org/software/repo/org/apt/conf/aktin.gpg.key | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/aktin.gpg
+#          echo "deb https://www.aktin.org/software/repo/org/apt jammy main" | sudo tee /etc/apt/sources.list.d/aktin.list
+#          sudo apt update
+#          sudo apt install -y aktin-notaufnahme-i2b2
+#          sudo apt install -y aktin-notaufnahme-dwh
+#
+#      - name: Verify installation
+#        run: |
+#            sudo systemctl status wildfly
