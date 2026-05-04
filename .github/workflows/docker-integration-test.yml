@@ -64,6 +64,14 @@ jobs:
           openssl rand -base64 32 > secret.txt
           echo "HTTP_PORT=${{ env.PORT }}" > .env
           docker compose up -d
+      
+      - name: Replace DWH EAR
+        run: |
+          EAR_PATH=$(find . -type f -name "dwh*.ear"|head -n 1)
+          sudo docker exec --user root dwh1-wildfly-1 bash -c "rm -r /opt/wildfly/standalone/deployments/dwh*"
+          sudo docker cp $EAR_PATH dwh1-wildfly-1:/opt/wildfly/standalone/deployments
+          cd /opt/docker-deploy/aktin-dwh/dwh1
+          sudo docker compose restart    
 
       - name: Verify Docker DWH
         run: |
@@ -72,7 +80,7 @@ jobs:
           TOKEN=$(curl -s -X POST "${{ env.API }}"/auth/login -H 'Content-Type: application/json' -d '{"username":"${{ secrets.USERNAME }}","password":"${{ secrets.PASSWORD }}"}')
           echo "Got token: $TOKEN"
           echo "TOKEN=$TOKEN" >> "$GITHUB_ENV"
-          echo $(curl -H "Authorization: Bearer ${{ env.TOKEN }}" "${{ env.API }}/auth/check")
+          echo $(curl -H "Authorization: Bearer ${{ env.TOKEN }}" "${{ env.API }}/auth/check")      
 
 
       - name: Load already-built debian package
@@ -101,6 +109,9 @@ jobs:
 
       - name: Update DWH
         run: |
+          curl -X POST -H "Authorization: Bearer ${{ env.TOKEN }}" "${{ env.API }}/update/agent/reload"
+          sleep 5s
           curl -X POST -H "Authorization: Bearer ${{ env.TOKEN }}" "${{ env.API }}/update"
+          
           
 
