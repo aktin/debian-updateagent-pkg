@@ -1,6 +1,11 @@
 name: docker-integration-test.yml
 run-name: Testing changes from user ${{ github.actor }}
-on: [push]
+on: [ push ]
+
+env:
+  PORT: 8080
+  API: localhost:${{ env.PORT }}/aktin/admin/rest
+  COMPOSE: https://github.com/aktin/docker-aktin-dwh/releases/download/v1.6rc1-3-db01-wf01-httpd01/compose.yml
 
 jobs:
   updateagent-build:
@@ -25,7 +30,6 @@ jobs:
         with:
           name: deb-file
           path: ${{ env.DEB_PATH }}
-
 
   updateagent-test:
     needs: updateagent-build
@@ -56,14 +60,19 @@ jobs:
           chown -R $USER:$USER /opt/docker-deploy/aktin-dwh/
           chmod 750 /opt/docker-deploy/aktin-dwh/dwh1
           cd /opt/docker-deploy/aktin-dwh/dwh1
-          curl -LO https://github.com/aktin/docker-aktin-dwh/releases/download/v1.6rc1-3-db01-wf01-httpd01/compose.yml
+          curl -LO $COMPOSE
           openssl rand -base64 32 > secret.txt
-          echo "HTTP_PORT=8080" > .env
+          echo "HTTP_PORT=${{ env.PORT }}" > .env
           docker compose up -d
 
       - name: Verify Docker DWH
         run: |
           echo "$(sudo docker ps)"
+          TOKEN=$(curl -s -X POST "${{ env.API }}"/auth/login -H 'Content-Type: application/json' -d '{"username":"${{ secrets.USERNAME }}","password":"${{ secrets.PASSWORD }}"}')
+          echo "Got token: $TOKEN"
+          echo "TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          curl -H "Authorization: Bearer ${{ env.TOKEN }}" "${{ env.API }}/auth/check"
+
 
       - name: Load already-built debian package
         uses: actions/download-artifact@v4
@@ -73,7 +82,6 @@ jobs:
       - name: Find debian file
         run: |
           DEB_PATH=$(find . -type f -name "*.deb" | head -n 1)
-          echo "DEB_PATH=$DEB_PATH" >> "$GITHUB_ENV"
           echo "Found debian package: $DEB_PATH"
 
       - name: Install required packages for debian file
@@ -87,6 +95,10 @@ jobs:
       - name: Verify installation
         run: |
           sudo apt-cache policy "$DEB_NAME"
+
+      - name: Update DWH
+        run: |
+          curl -X POST -H "Authorization: Bearer ${{ env.TOKEN }}" "${{ env.API }}/update"
 
 
 #    steps:
