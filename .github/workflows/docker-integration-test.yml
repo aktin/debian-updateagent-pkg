@@ -31,32 +31,36 @@ jobs:
     needs: updateagent-build
     runs-on: ubuntu-22.04
     steps:
-      - name: Setup R (required only for Github actions)
-        uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: '4.3.3'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
-
-
-      - name: Install DWH (Debian)
+      - name: Install Docker
         run: |
           sudo apt update
-          sudo apt install -y ca-certificates
-          sudo wget -O - https://www.aktin.org/software/repo/org/apt/conf/aktin.gpg.key | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/aktin.gpg
-          echo "deb https://www.aktin.org/software/repo/org/apt jammy main" | sudo tee /etc/apt/sources.list.d/aktin.list
+          sudo apt install ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+          
+          sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+          Types: deb
+          URIs: https://download.docker.com/linux/ubuntu
+          Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+          Components: stable
+          Architectures: $(dpkg --print-architecture)
+          Signed-By: /etc/apt/keyrings/docker.asc
+          EOF
           sudo apt update
-          sudo apt install -y aktin-notaufnahme-i2b2
-          sudo apt install -y aktin-notaufnahme-dwh
+          sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-      - name: Verify installation
+      - name: Install DWH (Docker)
         run: |
-            sudo systemctl status wildfly
-          
-          
+          mkdir -p /opt/docker-deploy/aktin-dwh/dwh1
+          chown -R $USER:$USER /opt/docker-deploy/aktin-dwh/
+          chmod 750 /opt/docker-deploy/aktin-dwh/dwh1
+          cd /opt/docker-deploy/aktin-dwh/dwh1
+          curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
+          openssl rand -base64 32 > secret.txt
+          echo "HTTP_PORT=8080" > .env
+          docker compose up -d
+          echo "$(sudo docker ps)"
 
       - name: Load already-built debian package
         uses: actions/download-artifact@v4
