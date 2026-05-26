@@ -14,11 +14,11 @@ log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
 
 readonly OPERATION="${1}"
 readonly UPDATE_DIR="/var/lib/aktin/update"
-readonly DEBIAN_SERVICE="/etc/systemd/system/wildfly.service"
+readonly DEBIAN_SERVICE="wildfly.service"
 
 # Requirement: Any kind of dwh has to be installed
 is_installed_debian() {
-  [[ -f $DEBIAN_SERVICE ]] || return 1   # return 1 when service file does not exist
+  [[ -n $(find / -type f -name "wildfly.service") ]] || return 1   # return 1 when service file does not exist
   return 0
 }
 
