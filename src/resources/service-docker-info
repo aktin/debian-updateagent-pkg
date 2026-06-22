@@ -18,32 +18,31 @@ compose_dir=""
 dwh_prefix=""
 update_dir=""
 
-mkdir -p "__AKTIN_UPDATE_DIR__"
+dwh_prefix="$(
+  docker ps -q | while read -r cid; do
+    docker inspect --format '{{.id}}} {{rande .NetworkSettings.Networks}}{{.IPAddress}} {{end}} {{index .Config.Labels "com.docker.compose.project"}}' \
+    "$cid"
+  done | awk -v ip="$client_ip" '$0 ~ ip {print $NF; exit}'
+)"
 
-request_message=""
-IFS= read -r -t 2 request_message || true
+echo "$dwh_prefix"
+update_dir="/var/lib/docker/volumes/${dwh_prefix}_aktin_data/_data/update"
+mkdir -p "$update_dir"
 
-compose_location=""
-case "$request_message" in
-  compose.location=*)
-    compose_location="${request_message#compose.location=}"
-    ;;
-esac
-
-cat <<EOF > "__AKTIN_UPDATE_DIR__/info.txt"
+cat <<EOF > "$update_dir/info"
 version.installed=
 version.candidate=
 version.time=$(date)
-version.message=${request_message}
 request.client_ip=${client_ip}
 request.client_port=${client_port}
+request.client_prefix=${dwh_prefix}
 EOF
 
 
 #
-#echo "$date" >> "__AKTIN_UPDATE_DIR__/info.txt"
-#echo "$client_ip" >> "__AKTIN_UPDATE_DIR__/info.txt"
-#echo "$client_port" >> "__AKTIN_UPDATE_DIR__/info.txt"
+#echo "$date" >> "__AKTIN_DOCKER_UPDATE_DIR__/info.txt"
+#echo "$client_ip" >> "__AKTIN_DOCKER_UPDATE_DIR__/info.txt"
+#echo "$client_port" >> "__AKTIN_DOCKER_UPDATE_DIR__/info.txt"
 
 #if IFS= read -r -t 2 -N 1024 compose_dir; then
 #    compose_dir="$(printf '%s' "$compose_dir" | tr -d '\000-\010\013\014\016-\037\177' | tr '\r\n' '  ')"
@@ -54,7 +53,7 @@ EOF
 #fi
 
 # Placeholder for future Docker update info logic
-#cat <<EOF > "__AKTIN_UPDATE_DIR__/info.txt"
+#cat <<EOF > "__AKTIN_DOCKER_UPDATE_DIR__/info.txt"
 #version.installed=
 #version.candidate=
 #version.time=$(date)
