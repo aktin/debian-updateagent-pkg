@@ -20,7 +20,7 @@ update_dir=""
 
 dwh_prefix="$(
   docker ps -q | while read -r cid; do
-    docker inspect --format '{{.id}}} {{rande .NetworkSettings.Networks}}{{.IPAddress}} {{end}} {{index .Config.Labels "com.docker.compose.project"}}' \
+    docker inspect --format '{{.id}}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}} {{index .Config.Labels "com.docker.compose.project"}}' \
     "$cid"
   done | awk -v ip="$client_ip" '$0 ~ ip {print $NF; exit}'
 )"
