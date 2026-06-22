@@ -25,7 +25,7 @@ dwh_prefix="$(
   done | awk -v ip="$client_ip" '$0 ~ ip {print $NF; exit}'
 )"
 
-echo "$dwh_prefix"
+echo "debug: value=$dwh_prefix" >&2
 update_dir="/var/lib/docker/volumes/${dwh_prefix}_aktin_data/_data/update"
 mkdir -p "$update_dir"
 
