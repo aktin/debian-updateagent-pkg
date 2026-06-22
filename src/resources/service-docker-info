@@ -30,9 +30,18 @@ echo "debug: value=$dwh_prefix" >&2
 update_dir="/var/lib/docker/volumes/${dwh_prefix}_aktin_data/_data/update"
 mkdir -p "$update_dir"
 
+installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
+  | grep 'dwh-j2ee-.*\.ear' \
+  | awk '{print $1}' \
+  | sed 's/dwh-j2ee-\(.*\)\.ear/\1/')
+LATEST_TAG=$(curl -s https://api.github.com/repos/aktin/dwh-j2ee/tags \
+  | grep -oP '"name":\s*"\K[^"]+' \
+  | sort -V \
+  | tail -1)
+
 cat <<EOF > "$update_dir/info"
-version.installed=
-version.candidate=
+version.installed=${installed}
+version.candidate=${LATEST_TAG}
 version.time=$(date)
 request.client_ip=${client_ip}
 request.client_port=${client_port}
