@@ -70,6 +70,37 @@ sudo docker compose up -d
 log "Finished update process"
 
 
+installed=""
+deploy_timeout_seconds="${WILDFLY_DEPLOY_TIMEOUT_SECONDS:-300}"
+deploy_check_interval_seconds="${WILDFLY_DEPLOY_CHECK_INTERVAL_SECONDS:-5}"
+deploy_deadline=$((SECONDS + deploy_timeout_seconds))
+
+while (( SECONDS < deploy_deadline )); do
+  if deployment_info=$(sudo docker exec "${dwh_prefix}-wildfly-1" /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" 2>/dev/null); then
+    installed=$(
+      awk '/dwh-j2ee-.*\.ear/ {
+        name = $1
+        sub(/^dwh-j2ee-/, "", name)
+        sub(/\.ear$/, "", name)
+        print name
+        exit
+      }' <<< "$deployment_info"
+    )
+
+    if [[ -n "$installed" ]]; then
+      break
+    fi
+  fi
+
+  log "WildFly deployment not ready yet, waiting ${deploy_check_interval_seconds}s"
+  sleep "$deploy_check_interval_seconds"
+done
+
+if [[ -z "$installed" ]]; then
+  log "WildFly deployment was not available after ${deploy_timeout_seconds}s"
+fi
+
+
 log "Start checks"
 # check if update was successful
 installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
