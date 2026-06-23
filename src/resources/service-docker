@@ -12,6 +12,13 @@ set -euo pipefail
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
+function log() {
+  local message="$1"
+  echo "$message" | systemd-cat -t "__PACKAGE_NAME__-docker"
+}
+
+log "Start updating Docker DWH"
+
 # Get compose prefix
 dwh_prefix="$(
   docker ps -q | while read -r cid; do
@@ -40,19 +47,19 @@ if [[ -n "$compose_working_dir" ]]; then
 elif [[ -n "$compose_config_files" ]]; then
   compose_dir="$(dirname "${compose_config_files%%,*}")"
 else
-  echo "Could not determine Docker Compose directory for container: ${compose_container}" >&2
+  log "Could not determine Docker Compose directory for container: ${compose_container}"
   exit 1
 fi
 
 if [[ ! -d "$compose_dir" ]]; then
-  echo "Docker Compose directory does not exist: ${compose_dir}" >&2
+  log "Docker Compose directory does not exist: ${compose_dir}"
   exit 1
 fi
 
 # safe wildfly log before update
 sudo docker cp "$dwh_prefix-wildfly-1":/opt/wildfly/standalone/log/server.log "$update_dir"
 
-echo "Starting Update process"
+log "Starting Update process"
 # Execute update
 cd "$compose_dir"
 sudo docker compose down
@@ -60,10 +67,10 @@ curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/comp
 sudo docker compose pull
 sudo docker compose up -d
 #sudo docker image prune -f
-echo "Finished update process"
+log "Finished update process"
 
 
-echo "Start checks"
+log "Start checks"
 # check if update was successful
 installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
   | grep 'dwh-j2ee-.*\.ear' \
@@ -75,7 +82,7 @@ if [[ "$installed" == "$candidate" ]]; then
 else
   success="false"
 fi
-echo "==> Update finished, installed: $installed, candidate was $candidate. Update successful: $success"
+log "==> Update finished, installed: $installed, candidate was $candidate. Update successful: $success"
 
 
 # Placeholder for future Docker update execution logic
