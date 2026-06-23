@@ -9,13 +9,13 @@
 [Unit]
 Description=AKTIN Update Service
 After=network.target
+StartLimitBurst=3
+StartLimitIntervalSec=300
 
 [Service]
 ExecStart=__PACKAGE_NAME__
 # Restart on failure but not too frequently
 Restart=on-failure
-StartLimitBurst=3
-StartLimitIntervalSec=300
 
 [Install]
 WantedBy=multi-user.target

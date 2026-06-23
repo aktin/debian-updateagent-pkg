@@ -10,11 +10,12 @@
 Description=AKTIN Docker Update Service
 After=network.target
 
+StartLimitBurst=3
+StartLimitIntervalSec=300
+
 [Service]
 ExecStart=__PACKAGE_NAME__-docker
 Restart=on-failure
-StartLimitBurst=3
-StartLimitIntervalSec=300
 
 [Install]
 WantedBy=multi-user.target
