@@ -43,32 +43,8 @@ cat <<EOF > "$update_dir/info"
 version.installed=${installed}
 version.candidate=${LATEST_TAG}
 version.time=$(date)
+
 request.client_ip=${client_ip}
 request.client_port=${client_port}
 request.client_prefix=${dwh_prefix}
 EOF
-
-
-#
-#echo "$date" >> "__AKTIN_DOCKER_UPDATE_DIR__/info.txt"
-#echo "$client_ip" >> "__AKTIN_DOCKER_UPDATE_DIR__/info.txt"
-#echo "$client_port" >> "__AKTIN_DOCKER_UPDATE_DIR__/info.txt"
-
-#if IFS= read -r -t 2 -N 1024 compose_dir; then
-#    compose_dir="$(printf '%s' "$compose_dir" | tr -d '\000-\010\013\014\016-\037\177' | tr '\r\n' '  ')"
-#    dwh_prefix="$(basename $compose_dir)"
-#    update_dir=$(find -type d -name $dwh_prefix"_aktin_data") "/_data/update"
-#else
-#    exit 1  # no tcp-message received
-#fi
-
-# Placeholder for future Docker update info logic
-#cat <<EOF > "__AKTIN_DOCKER_UPDATE_DIR__/info.txt"
-#version.installed=
-#version.candidate=
-#version.time=$(date)
-#version.message=not_implemented
-#request.client_ip=${client_ip}
-#request.client_port=${client_port}
-#dir=${$update_dir}
-#EOF
