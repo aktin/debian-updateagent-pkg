@@ -10,7 +10,7 @@
 set -euo pipefail
 
 # Ensure update directory exists
-mkdir -p "__AKTIN_DOCKER_UPDATE_DIR__"
+mkdir -p "__AKTIN_UPDATE_DIR__"
 
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
@@ -24,15 +24,36 @@ dwh_prefix="$(
   done | awk -v ip="$client_ip" '$0 ~ ip {print $NF; exit}'
 )"
 
+if [[ -z "$dwh_prefix" ]]; then
+  echo "Could not determine Docker Compose project for client IP: ${client_ip}" >&2
+  exit 1
+fi
+
 # ensure update dir
 update_dir="/var/lib/docker/volumes/${dwh_prefix}_aktin_data/_data/update"
 mkdir -p "$update_dir"
 
 # find location of compose file
-compose_dir="$(docker inspect $dwh_prefix-wildfly-1 --format='{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
+compose_container="${dwh_prefix}-wildfly-1"
+compose_working_dir="$(docker inspect "$compose_container" --format='{{index .Config.Labels "com.docker.compose.project.working_dir"}}')"
+compose_config_files="$(docker inspect "$compose_container" --format='{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
+
+if [[ -n "$compose_working_dir" ]]; then
+  compose_dir="$compose_working_dir"
+elif [[ -n "$compose_config_files" ]]; then
+  compose_dir="$(dirname "${compose_config_files%%,*}")"
+else
+  echo "Could not determine Docker Compose directory for container: ${compose_container}" >&2
+  exit 1
+fi
+
+if [[ ! -d "$compose_dir" ]]; then
+  echo "Docker Compose directory does not exist: ${compose_dir}" >&2
+  exit 1
+fi
 
 # Execute update
-cd "$(directory $compose_dir)"
+cd "$compose_dir"
 sudo docker compose down
 curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
 sudo docker compose pull
