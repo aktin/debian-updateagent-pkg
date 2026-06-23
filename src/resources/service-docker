@@ -9,9 +9,6 @@
 
 set -euo pipefail
 
-# Ensure update directory exists
-mkdir -p "__AKTIN_UPDATE_DIR__"
-
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
@@ -55,15 +52,18 @@ fi
 # safe wildfly log before update
 sudo docker cp "$dwh_prefix-wildfly-1":/opt/wildfly/standalone/log/server.log "$update_dir"
 
+echo "Starting Update process"
 # Execute update
 cd "$compose_dir"
 sudo docker compose down
 curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
 sudo docker compose pull
 sudo docker compose up -d
-sudo docker image prune
+sudo docker image prune -f
+echo "Finished update process"
 
 
+echo "Start checks"
 # check if update was successful
 installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
   | grep 'dwh-j2ee-.*\.ear' \
