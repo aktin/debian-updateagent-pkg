@@ -109,10 +109,10 @@ installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.
   | sed 's/dwh-j2ee-\(.*\)\.ear/\1/')
 log "Got installed version $installed"
 
-candidate=$(grep "version.candidate" info | awk -F'=' '{print $2}')
+candidate=$(cat "$update_dir/info" | grep "version.candidate" | awk -F'=' '{print $2}')
 log "Got target candidate $candidate"
 
-if [[ "$installed" == "$candidate" ]]; then
+if [[ "v$installed" == "$candidate" ]]; then  # todo find a better check for testing if update was successful
   success="true"
 else
   success="false"
