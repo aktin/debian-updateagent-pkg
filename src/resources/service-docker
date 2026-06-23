@@ -15,10 +15,32 @@ mkdir -p "__AKTIN_DOCKER_UPDATE_DIR__"
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
+# Get compose prefix
+dwh_prefix="$(
+  docker ps -q | while read -r cid; do
+    docker inspect \
+    --format '{{.Id}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}} {{index .Config.Labels "com.docker.compose.project"}}' \
+    "$cid"
+  done | awk -v ip="$client_ip" '$0 ~ ip {print $NF; exit}'
+)"
 
+# ensure update dir
+update_dir="/var/lib/docker/volumes/${dwh_prefix}_aktin_data/_data/update"
+mkdir -p "$update_dir"
+
+# find location of compose file
+compose_dir="$(docker inspect $dwh_prefix-wildfly-1 --format='{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
+
+# Execute update
+cd "$compose_dir"
+sudo docker compose down
+curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
+sudo docker compose pull
+sudo docker compose up -d
+sudo docker image prune
 
 # Placeholder for future Docker update execution logic
-cat <<EOF >"__AKTIN_DOCKER_UPDATE_DIR__/docker-result"
+cat <<EOF >"$update_dir/docker-result"
 update.success=false
 update.time=$(date)
 update.message=not_implemented
