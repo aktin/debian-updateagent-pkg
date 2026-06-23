@@ -52,6 +52,9 @@ if [[ ! -d "$compose_dir" ]]; then
   exit 1
 fi
 
+# safe wildfly log before update
+sudo docker cp "$dwh_prefix-wildfly-1":/opt/wildfly/standalone/log/server.log "$update_dir"
+
 # Execute update
 cd "$compose_dir"
 sudo docker compose down
@@ -60,11 +63,33 @@ sudo docker compose pull
 sudo docker compose up -d
 sudo docker image prune
 
+
+# check if update was successful
+installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
+  | grep 'dwh-j2ee-.*\.ear' \
+  | awk '{print $1}' \
+  | sed 's/dwh-j2ee-\(.*\)\.ear/\1/')
+candidate=$(grep "version.candidate" info | awk -F'=' '{print $2}')
+if [[ "$installed" == "$candidate" ]]; then
+  success="true"
+else
+  success="false"
+fi
+echo "==> Update finished, installed: $installed, candidate was $candidate. Update successful: $success"
+
+
 # Placeholder for future Docker update execution logic
 cat <<EOF >"$update_dir/docker-result"
-update.success=false
+update.success=${success}
 update.time=$(date)
 update.message=not_implemented
 request.client_ip=${client_ip}
 request.client_port=${client_port}
 EOF
+
+
+# --------- CLEANUP ----------------------------
+# copy old update log into new container
+sudo docker cp "$update_dir/server.log" "$dwh_prefix-wildfly-1":/opt/wildfly/standalone/log/server.log.1
+rm "$update_dir/server.log"
+rm "$update_dir/info"
