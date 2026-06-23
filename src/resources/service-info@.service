@@ -9,13 +9,13 @@
 [Unit]
 Description=AKTIN Update-Info Service
 After=network.target
+StartLimitBurst=3
+StartLimitIntervalSec=300
 
 [Service]
 ExecStart=apt update
 # Restart on failure but not too frequently
 Restart=on-failure
-StartLimitBurst=3
-StartLimitIntervalSec=300
 
 [Install]
 WantedBy=multi-user.target
