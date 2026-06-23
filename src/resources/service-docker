@@ -32,7 +32,7 @@ mkdir -p "$update_dir"
 compose_dir="$(docker inspect $dwh_prefix-wildfly-1 --format='{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
 
 # Execute update
-cd "$compose_dir"
+cd "$(directory $compose_dir)"
 sudo docker compose down
 curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
 sudo docker compose pull
