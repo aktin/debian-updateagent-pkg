@@ -14,7 +14,7 @@ client_port="${REMOTE_PORT:-}"
 
 function log() {
   local message="$1"
-  echo "$message" | systemd-cat -t "__PACKAGE_NAME__-docker"
+  echo "[LOGGING] $message" | systemd-cat -t "__PACKAGE_NAME__-docker"
 }
 
 log "Start updating Docker DWH"
@@ -76,7 +76,11 @@ installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.
   | grep 'dwh-j2ee-.*\.ear' \
   | awk '{print $1}' \
   | sed 's/dwh-j2ee-\(.*\)\.ear/\1/')
+log "Got installed version $installed"
+
 candidate=$(grep "version.candidate" info | awk -F'=' '{print $2}')
+log "Got target candidate $candidate"
+
 if [[ "$installed" == "$candidate" ]]; then
   success="true"
 else
