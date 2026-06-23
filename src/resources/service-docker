@@ -14,7 +14,7 @@ client_port="${REMOTE_PORT:-}"
 
 function log() {
   local message="$1"
-  echo "[LOGGING] $message" | systemd-cat -t "__PACKAGE_NAME__-docker"
+  echo "[LOGGING] $message"
 }
 
 log "Start updating Docker DWH"
@@ -29,7 +29,7 @@ dwh_prefix="$(
 )"
 
 if [[ -z "$dwh_prefix" ]]; then
-  echo "Could not determine Docker Compose project for client IP: ${client_ip}" >&2
+  log "Could not determine Docker Compose project for client IP: ${client_ip}" >&2
   exit 1
 fi
 
