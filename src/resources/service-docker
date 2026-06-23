@@ -4,7 +4,7 @@
 # Version:      1.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
 # Date:         07 Apr 26
-# Purpose:      Placeholder service script for Docker-based update execution
+# Purpose:      Placeholder service script for Docker-based update execution. See Logging on host using 'journalctl -u 'aktin-notaufnahme-updateagent-docker*' -f'
 #--------------------------------------
 
 set -euo pipefail
@@ -133,5 +133,5 @@ EOF
 # --------- CLEANUP ----------------------------
 # copy old update log into new container
 sudo docker cp "$update_dir/server.log" "$dwh_prefix-wildfly-1":/opt/wildfly/standalone/log/server.log.1
-rm "$update_dir/server.log"
-rm "$update_dir/info"
+#rm "$update_dir/server.log"
+#rm "$update_dir/info"
