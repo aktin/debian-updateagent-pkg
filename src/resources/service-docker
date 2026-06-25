@@ -12,7 +12,7 @@ set -euo pipefail
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
-source helpers.sh
+source "/usr/lib/__PACKAGE_NAME__/helpers.sh"
 
 log "Start updating Docker DWH"
 dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"

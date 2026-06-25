@@ -12,7 +12,7 @@ set -euo pipefail
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
-source helpers.sh
+source "/usr/lib/__PACKAGE_NAME__/helpers.sh"
 
 dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
 wildfly_container="$dwh_prefix-wildfly-1"
