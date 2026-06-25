@@ -2,9 +2,9 @@
 #--------------------------------------
 # Script Name:  __PACKAGE_NAME__-docker
 # Version:      1.0
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Authors:      whoy@ukaachen.de
 # Date:         07 Apr 26
-# Purpose:      Placeholder service script for Docker-based update execution. See Logging on host using 'journalctl -u 'aktin-notaufnahme-updateagent-docker*' -f'
+# Purpose:      Service script to handle DWH package updates for docker DWHs
 #--------------------------------------
 
 set -euo pipefail
@@ -12,126 +12,37 @@ set -euo pipefail
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
-function log() {
-  local message="$1"
-  echo "[LOGGING] $message"
-}
+source helpers.sh
 
 log "Start updating Docker DWH"
+dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
+wildfly_container="$dwh_prefix-wildfly-1"
+update_dir="$(docker_ensure_update_dir $dwh_prefix)"
+compose_dir="$(docker_get_compose_location_by_container $wildfly_container)"
 
-# Get compose prefix
-dwh_prefix="$(
-  docker ps -q | while read -r cid; do
-    docker inspect \
-    --format '{{.Id}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}} {{index .Config.Labels "com.docker.compose.project"}}' \
-    "$cid"
-  done | awk -v ip="$client_ip" '$0 ~ ip {print $NF; exit}'
-)"
+# --------- Pre-update preparation ----------------------------
+sudo docker cp "$wildfly_container":/opt/wildfly/standalone/log/server.log "$update_dir"
 
-if [[ -z "$dwh_prefix" ]]; then
-  log "Could not determine Docker Compose project for client IP: ${client_ip}" >&2
-  exit 1
-fi
-
-# ensure update dir
-update_dir="/var/lib/docker/volumes/${dwh_prefix}_aktin_data/_data/update"
-mkdir -p "$update_dir"
-
-# find location of compose file
-compose_container="${dwh_prefix}-wildfly-1"
-compose_working_dir="$(docker inspect "$compose_container" --format='{{index .Config.Labels "com.docker.compose.project.working_dir"}}')"
-compose_config_files="$(docker inspect "$compose_container" --format='{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
-
-if [[ -n "$compose_working_dir" ]]; then
-  compose_dir="$compose_working_dir"
-elif [[ -n "$compose_config_files" ]]; then
-  compose_dir="$(dirname "${compose_config_files%%,*}")"
-else
-  log "Could not determine Docker Compose directory for container: ${compose_container}"
-  exit 1
-fi
-
-if [[ ! -d "$compose_dir" ]]; then
-  log "Docker Compose directory does not exist: ${compose_dir}"
-  exit 1
-fi
-
-# safe wildfly log before update
-sudo docker cp "$dwh_prefix-wildfly-1":/opt/wildfly/standalone/log/server.log "$update_dir"
-
-log "Starting Update process"
-# Execute update
+# --------- Main update process----------------------------
+log "Starting Docker update process"
 cd "$compose_dir"
 sudo docker compose down
 curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
 sudo docker compose pull
 sudo docker compose up -d
 #sudo docker image prune -f
-log "Finished update process"
+docker_wait_for_deployment "$wildfly_container"
+successful="$(docker_post_update_validation $wildfly_container $update_dir)"
 
-
-installed=""
-deploy_timeout_seconds="${WILDFLY_DEPLOY_TIMEOUT_SECONDS:-300}"
-deploy_check_interval_seconds="${WILDFLY_DEPLOY_CHECK_INTERVAL_SECONDS:-5}"
-deploy_deadline=$((SECONDS + deploy_timeout_seconds))
-
-while (( SECONDS < deploy_deadline )); do
-  if deployment_info=$(sudo docker exec "${dwh_prefix}-wildfly-1" /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" 2>/dev/null); then
-    installed=$(
-      awk '/dwh-j2ee-.*\.ear/ {
-        name = $1
-        sub(/^dwh-j2ee-/, "", name)
-        sub(/\.ear$/, "", name)
-        print name
-        exit
-      }' <<< "$deployment_info"
-    )
-
-    if [[ -n "$installed" ]]; then
-      break
-    fi
-  fi
-
-  log "WildFly deployment not ready yet, waiting ${deploy_check_interval_seconds}s"
-  sleep "$deploy_check_interval_seconds"
-done
-
-if [[ -z "$installed" ]]; then
-  log "WildFly deployment was not available after ${deploy_timeout_seconds}s"
-fi
-
-
-log "Start checks"
-# check if update was successful
-installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
-  | grep 'dwh-j2ee-.*\.ear' \
-  | awk '{print $1}' \
-  | sed 's/dwh-j2ee-\(.*\)\.ear/\1/')
-log "Got installed version $installed"
-
-candidate=$(cat "$update_dir/info" | grep "version.candidate" | awk -F'=' '{print $2}')
-log "Got target candidate $candidate"
-
-if [[ "v$installed" == "$candidate" ]]; then  # todo find a better check for testing if update was successful
-  success="true"
-else
-  success="false"
-fi
-log "==> Update finished, installed: $installed, candidate was $candidate. Update successful: $success"
-
-
-# Placeholder for future Docker update execution logic
 cat <<EOF >"$update_dir/docker-result"
-update.success=${success}
+update.success=${successful}
 update.time=$(date)
 update.message=not_implemented
 request.client_ip=${client_ip}
 request.client_port=${client_port}
 EOF
 
-
 # --------- CLEANUP ----------------------------
 # copy old update log into new container
 sudo docker cp "$update_dir/server.log" "$dwh_prefix-wildfly-1":/opt/wildfly/standalone/log/server.log.1
-#rm "$update_dir/server.log"
-#rm "$update_dir/info"
+
