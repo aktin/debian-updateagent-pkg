@@ -2,46 +2,28 @@
 #--------------------------------------
 # Script Name:  __PACKAGE_NAME__-docker-info
 # Version:      1.0
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Authors:      whoy@ukaachen.de
 # Date:         07 Apr 26
-# Purpose:      Placeholder service script for Docker-based update information
+# Purpose:      Service script to collect DWH package version information for docker DWHs
 #--------------------------------------
 
 set -euo pipefail
 
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
-#source summary_aktin-updateagent_preinstall.txt
 
-# read TCP message or leave empty if none
-compose_dir=""
-dwh_prefix=""
-update_dir=""
+source helpers.sh
 
-dwh_prefix="$(
-  docker ps -q | while read -r cid; do
-    docker inspect \
-    --format '{{.Id}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}} {{index .Config.Labels "com.docker.compose.project"}}' \
-    "$cid"
-  done | awk -v ip="$client_ip" '$0 ~ ip {print $NF; exit}'
-)"
+dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
+wildfly_container="$dwh_prefix-wildfly-1"
+update_dir="$(docker_ensure_update_dir $dwh_prefix)"
 
-echo "debug: value=$dwh_prefix" >&2
-update_dir="/var/lib/docker/volumes/${dwh_prefix}_aktin_data/_data/update"
-mkdir -p "$update_dir"
-
-installed=$(sudo docker exec "$dwh_prefix"-wildfly-1 /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
-  | grep 'dwh-j2ee-.*\.ear' \
-  | awk '{print $1}' \
-  | sed 's/dwh-j2ee-\(.*\)\.ear/\1/')
-LATEST_TAG=$(curl -s https://api.github.com/repos/aktin/dwh-j2ee/tags \
-  | grep -oP '"name":\s*"\K[^"]+' \
-  | sort -V \
-  | tail -1)
+installed="$(docker_get_currently_deployed_version $wildfly_container)"
+latest="$(docker_get_latest_release)"
 
 cat <<EOF > "$update_dir/info"
 version.installed=${installed}
-version.candidate=${LATEST_TAG}
+version.candidate=${latest}
 version.time=$(date)
 
 request.client_ip=${client_ip}

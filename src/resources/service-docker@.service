@@ -1,7 +1,7 @@
 # ----------------------------------------------
 # Unit Name:    __PACKAGE_NAME__-docker@.service
 # Version:      1.0
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
+# Authors:      whoy@ukaachen.de
 # Date:         07 Apr 26
 # Purpose:      Service unit for Docker update execution
 # ----------------------------------------------
