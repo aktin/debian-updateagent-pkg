@@ -18,8 +18,13 @@ readonly DEBIAN_SERVICE="wildfly.service"
 
 # Requirement: Any kind of dwh has to be installed
 is_installed_debian() {
-  [[ -n $(find / -type f -name "wildfly.service") ]] || return 1   # return 1 when service file does not exist
-  return 0
+  if systemctl list-unit-files | grep -q "wildfly"; then
+      log_info "WildFly service is installed"
+      return 0
+  else
+      log_info "WildFly service is NOT installed"
+      return 1
+  fi
 }
 
 is_installed_docker() {
