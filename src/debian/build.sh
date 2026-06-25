@@ -104,7 +104,7 @@ prepare_service_files() {
 
   mkdir -p "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/socket-setup" > "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/socket-setup"
-  cp "${DIR_RESOURCES}/helpers.sh" "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/helpers.sh
+  cp "${DIR_RESOURCES}/helpers.sh" "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/helpers.sh"
 
   # Set proper executable permissions
   chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info" "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/socket-setup"
