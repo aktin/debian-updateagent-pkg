@@ -81,7 +81,7 @@ function docker_get_currently_deployed_version() {
 function docker_wait_for_deployment() {
   wildfly_container="$1"
   timeout_seconds="${2:-300}"
-  check_interval_seconds="${3:-5}"+
+  check_interval_seconds="${3:-5}"
   deadline_ts=$((SECONDS + timeout_seconds))
   installed=""
 
