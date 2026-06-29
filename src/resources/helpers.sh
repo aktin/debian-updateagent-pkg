@@ -10,7 +10,7 @@
 
 function log() {
   local message="$1"
-  echo "[LOGGING] $message"
+  echo "[LOGGING] $message" >&2
 }
 
 function docker_get_latest_release() {
