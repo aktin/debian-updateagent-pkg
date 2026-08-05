@@ -12,7 +12,6 @@ Description=AKTIN Update Info Socket
 [Socket]
 ListenStream=127.0.0.1:1002
 Accept=Yes
-StandardOutput=socket
 
 [Install]
 WantedBy=sockets.target

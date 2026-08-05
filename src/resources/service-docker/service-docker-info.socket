@@ -12,7 +12,6 @@ Description=AKTIN Docker Update Info Socket
 [Socket]
 ListenStream=0.0.0.0:1004
 Accept=Yes
-StandardOutput=socket
 
 [Install]
 WantedBy=sockets.target
