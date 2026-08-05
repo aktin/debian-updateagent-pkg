@@ -73,7 +73,6 @@ main() {
       ;;
     remove)
       stop_socket_services
-      # todo: function to delete sockets
       ;;
     *)
       usage

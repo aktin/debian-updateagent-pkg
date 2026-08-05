@@ -12,10 +12,11 @@ set -euo pipefail
 
 readonly PACKAGE_NAME="aktin-notaufnahme-updateagent"
 
-readonly CLEANUP=false
-readonly SKIP_BUILD=false
-readonly FULL_CLEAN=false
+CLEANUP=false
+SKIP_BUILD=false
+FULL_CLEAN=false
 readonly UPDATE_DIR="/var/lib/aktin/update"
+readonly DOCKER_VOLUMES_DIR="/var/lib/docker/volumes/"
 dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
 
 usage() {
@@ -104,7 +105,7 @@ prepare_service_files() {
 
   mkdir -p "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${UPDATE_DIR}|g" "${DIR_RESOURCES}/socket-setup" > "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/socket-setup"
-  cp "${DIR_RESOURCES}/service-docker/helpers.sh" "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/helpers.sh"
+  sed -e "s|__DOCKER_VOLUMES_DIR__|${DOCKER_VOLUMES_DIR}|g" "${DIR_RESOURCES}/service-docker/helpers.sh" > "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/helpers.sh"
 
   # Set proper executable permissions
   chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info" "${DIR_BUILD}/usr/lib/${PACKAGE_NAME}/socket-setup"
@@ -116,9 +117,10 @@ prepare_management_scripts_and_files() {
 
   # Replace placeholders
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__PACKAGE_VERSION__|${PACKAGE_VERSION}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" "${DIR_DEBIAN}/control" > "${DIR_BUILD}/DEBIAN/control"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${UPDATE_DIR}|g" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__AKTIN_UPDATE_DIR__|${UPDATE_DIR}|g" -e "s|__DOCKER_VOLUMES_DIR__|${DOCKER_VOLUMES_DIR}|g" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
   sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/preinst" > "${DIR_BUILD}/DEBIAN/preinst"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DOCKER_VOLUMES_DIR__|${DOCKER_VOLUMES_DIR}|g" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
+  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/postrm" > "${DIR_BUILD}/DEBIAN/postrm"
 
   # Set proper executable permissions
   chmod 0755 "${DIR_BUILD}/DEBIAN/"*

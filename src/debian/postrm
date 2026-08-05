@@ -1,0 +1,40 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  postrm
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         05 Aug 26
+# Purpose:      Cleans up systemd state after package files (including unit files) have been removed by dpkg.
+#--------------------------------------
+
+log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
+log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
+log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
+log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+
+readonly OPERATION="${1}"
+
+reload_systemd() {
+  if command -v systemctl >/dev/null 2>&1; then
+    log_info "Reloading systemd daemon..."
+    if ! systemctl daemon-reload; then
+      log_warn "Failed to reload systemd daemon"
+    fi
+  else
+    log_warn "systemctl is not available; skipping daemon reload"
+  fi
+}
+
+main() {
+  set -euo pipefail
+  case "$OPERATION" in
+    remove|purge)
+      # Runs after package files (including systemd unit files) have already been deleted.
+      reload_systemd
+      ;;
+    upgrade|failed-upgrade|disappear)
+      ;;
+  esac
+}
+
+main "$@"

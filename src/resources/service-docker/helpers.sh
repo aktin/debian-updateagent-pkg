@@ -42,7 +42,7 @@ function get_compose_prefix_from_ip() {
 
 function docker_ensure_update_dir() {
   local dwh_prefix="$1"
-  update_dir="/var/lib/docker/volumes/${dwh_prefix}_aktin_data/_data/update"
+  update_dir="__DOCKER_VOLUMES_DIR__${dwh_prefix}_aktin_data/_data/update"
   mkdir -p "$update_dir"
   echo "$update_dir"
 }
@@ -111,23 +111,32 @@ function docker_wait_for_deployment() {
   fi
 }
 
+function docker_get_deployment_status() {
+  local container_name="$1"
+  sudo docker exec "$container_name" /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
+    | grep 'dwh-j2ee-.*\.ear' \
+    | awk '{print $NF}'
+}
+
 function docker_post_update_validation() {
   wildfly_container="$1"
-  update_dir="$2"
 
   installed="$(docker_get_currently_deployed_version $wildfly_container)"
   installed="v$installed" # because of git tagging rules adding v before version
   log "Got installed version $installed"
 
-  candidate=$(cat "$update_dir/info" | grep "version.candidate" | awk -F'=' '{print $2}')
+  status="$(docker_get_deployment_status $wildfly_container)"
+  log "Got deployment status $status"
+
+  candidate="$(docker_get_latest_release)"
   log "Got target candidate $candidate"
 
-  if [[ "$installed" == "$candidate" ]]; then  # todo find a better check for testing if update was successful
+  if [[ "$installed" == "$candidate" && "$status" == "OK" ]]; then
     success="true"
   else
     success="false"
   fi
-  log "==> Update finished, installed: $installed, candidate was $candidate. Update successful: $success"
+  log "==> Update finished, installed: $installed (status: $status), candidate was $candidate. Update successful: $success"
 
   echo "$success"
 }
