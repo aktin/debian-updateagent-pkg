@@ -3,9 +3,12 @@
 This Debian package provides automated update management for the [AKTIN DWH system](https://github.com/aktin/debian-dwh-pkg). It uses systemd socket activation to monitor and execute DWH package updates, ensuring the system stays current with minimal manual intervention.
 
 ## Prerequisites
-- AKTIN DWH package
-- unattended-upgrades
-- systemd
+- `unattended-upgrades` (declared package dependency)
+- `systemd` (required for socket activation; not a declared package dependency, assumed present)
+- Optional: an existing AKTIN DWH installation, either Debian-native (`wildfly.service`) or
+  Docker-based (a docker-compose stack using the `ghcr.io/aktin/notaufnahme-dwh-*` images).
+  Detected automatically at install time — the package installs correctly with either, both,
+  or neither present (see Installation below).
 
 ## Installation
 ```bash
@@ -48,11 +51,12 @@ That helper applies host-coupled configuration such as `wildfly` ownership and e
 
 ## Building
 ```bash
-./build.sh [--cleanup] [--skip-deb-build]
+./src/debian/build.sh [--cleanup] [--skip-deb-build] [--full-clean]
 ```
 Options:
 - `--cleanup`: Remove build directory after package creation
 - `--skip-deb-build`: Skip the Debian package build step
+- `--full-clean`: Remove the build and downloads directories before starting
 
 ## Status Files
 Debian-native and Docker updates write the same three file names, into their respective update
