@@ -37,8 +37,12 @@ That helper applies host-coupled configuration such as `wildfly` ownership and e
 - Secure execution under WildFly user
 
 ## File Locations
-- Update directory: `/var/lib/aktin/update`
-- Service scripts: `/usr/bin/aktin-notaufnahme-updateagent`
+- Update directory (Debian-native DWH): `/var/lib/aktin/update`
+- Update directory (Docker DWH, one per tenant): `/var/lib/docker/volumes/<compose_project>_aktin_data/_data/update`
+  - `<compose_project>` is the docker-compose project name of the DWH stack being updated. The
+    directory is inside that stack's own `aktin_data` volume, so the files below live alongside
+    the DWH's own data, not on the host's `/var/lib/aktin`.
+- Service scripts: `/usr/bin/aktin-notaufnahme-updateagent`, `-info`, `-docker`, `-docker-info`
 - Socket configurations: `/lib/systemd/system`
 - APT hook: `/etc/apt/apt.conf.d/99aktin-notaufnahme-updateagent-info`
 
@@ -51,11 +55,15 @@ Options:
 - `--skip-deb-build`: Skip the Debian package build step
 
 ## Status Files
-- `info`: Contains current and candidate version information
+Debian-native and Docker updates write the same three file names, into their respective update
+directory from [File Locations](#file-locations) above — the directory differs, the file names
+and meaning don't. Docker's update directory additionally keeps a `server.log` backup of the
+DWH's WildFly log from just before the update, copied back into the redeployed container
+afterwards.
+- `info`: Current and candidate version information
 - `log`: Update execution logs
 - `result`: Update execution results with success status
-- `docker-info`: Placeholder output for Docker version information
-- `docker-result`: Placeholder output for Docker update execution
+- `server.log` (Docker only): Backup of the container's WildFly log taken immediately before the update
 
 ## Support
 For support, contact: [it-support@aktin.org](mailto:it-support@aktin.org)
