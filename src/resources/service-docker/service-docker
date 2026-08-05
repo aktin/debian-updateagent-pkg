@@ -30,7 +30,6 @@ sudo docker compose down
 curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
 sudo docker compose pull
 sudo docker compose up -d
-#sudo docker image prune -f
 docker_wait_for_deployment "$wildfly_container"
 successful="$(docker_post_update_validation $wildfly_container $update_dir)"
 
