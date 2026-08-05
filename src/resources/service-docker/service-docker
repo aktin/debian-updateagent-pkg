@@ -18,6 +18,7 @@ log "Start updating Docker DWH"
 dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
 wildfly_container="$dwh_prefix-wildfly-1"
 update_dir="$(docker_ensure_update_dir $dwh_prefix)"
+exec > >(tee -a "$update_dir/log") 2>&1
 compose_dir="$(docker_get_compose_location_by_container $wildfly_container)"
 
 # --------- Pre-update preparation ----------------------------
@@ -32,8 +33,6 @@ sudo docker compose pull
 sudo docker compose up -d
 docker_wait_for_deployment "$wildfly_container"
 successful="$(docker_post_update_validation $wildfly_container $update_dir)"
-
-$(journalctl -u 'aktin-notaufnahme-updateagent-docker*' -f) > $update_dir/log
 
 cat <<EOF >"$update_dir/result"
 update.success=${successful}
