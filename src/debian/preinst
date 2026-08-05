@@ -61,14 +61,9 @@ main() {
       log_info "debian dwh status: $debian_status"
       log_info "docker dwh status: $docker_status"
 
-      if ! is_installed_debian && ! is_installed_docker; then
-        log_error "No Data Warehouse found, cancel installation of updateagent"
-        exit 1
-      fi
-
-      cat <<EOF > "summary_aktin-updateagent_preinstall.txt"
-      "debian_installed=$debian_status"
-      "docker_installed=$docker_status"
+      cat <<EOF > "/tmp/summary_aktin-updateagent_preinstall.txt"
+debian_installed=$debian_status
+docker_installed=$docker_status
 EOF
       ;;
     upgrade)
