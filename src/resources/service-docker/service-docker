@@ -37,7 +37,6 @@ successful="$(docker_post_update_validation $wildfly_container $update_dir)"
 cat <<EOF >"$update_dir/result"
 update.success=${successful}
 update.time=$(date)
-update.message=not_implemented
 request.client_ip=${client_ip}
 request.client_port=${client_port}
 EOF
