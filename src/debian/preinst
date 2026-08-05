@@ -7,10 +7,12 @@
 # Purpose:      Checks target system for requirements. Cancel installation if environment is insufficient
 #--------------------------------------
 
-log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
-log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
-log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
-log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+readonly PACKAGE_NAME="__PACKAGE_NAME__"
+
+log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.info -- "$1" 2>/dev/null || true; }
+log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.notice -- "$1" 2>/dev/null || true; }
+log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.warning -- "$1" 2>/dev/null || true; }
+log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NAME}" -p user.err -- "$1" 2>/dev/null || true; }
 
 readonly OPERATION="${1}"
 readonly UPDATE_DIR="/var/lib/aktin/update"

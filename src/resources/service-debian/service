@@ -32,6 +32,10 @@ else
   success="false"
 fi
 
+# Mirror the apt-get transcript into the journal too, alongside the persisted file above,
+# so it shows up in the same unified log stream as everything else in this package.
+logger -t "__PACKAGE_NAME__" -p user.info -f "__AKTIN_UPDATE_DIR__/log" 2>/dev/null || true
+
 # Write result
 cat <<EOF >"__AKTIN_UPDATE_DIR__/result"
 update.success=${success}
