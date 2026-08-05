@@ -10,7 +10,7 @@
 
 function log() {
   local message="$1"
-  echo "[LOGGING] $message" >&2
+  echo "[LOGGING] tenant=${dwh_prefix:-unknown} $message" >&2
 }
 
 function docker_get_latest_release() {
