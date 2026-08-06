@@ -10,7 +10,7 @@
 Description=AKTIN Update Socket
 
 [Socket]
-ListenStream=127.0.0.1:1003
+ListenStream=__BIND_ADDR_LOCAL__:__PORT_UPDATE__
 Accept=Yes
 
 [Install]

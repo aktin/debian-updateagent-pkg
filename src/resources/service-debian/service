@@ -11,7 +11,7 @@ set -euo pipefail
 
 # Only a Debian-native WildFly install is in scope for this script; a Docker-based DWH
 # is handled by __PACKAGE_NAME__-docker instead.
-if ! systemctl list-unit-files | grep -q '^wildfly\.service'; then
+if ! systemctl list-unit-files | grep -q '^__WILDFLY_SERVICE__'; then
   echo "E: wildfly.service is not installed on this host; nothing to update." >&2
   exit 1
 fi
@@ -25,7 +25,7 @@ if ! { apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--for
   # The restart is needed because package updates may leave deployments
   # in failed state until WildFly is restarted.
   systemctl daemon-reload
-  systemctl restart wildfly.service
+  systemctl restart __WILDFLY_SERVICE__
   sleep 30
   success="true"
 else
@@ -43,6 +43,6 @@ update.time=$(date)
 EOF
 
 # WildFly reads its own update status from this directory; keep it wildfly-owned.
-if ! chown -R wildfly:wildfly "__AKTIN_UPDATE_DIR__"; then
+if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
   echo "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__" >&2
 fi

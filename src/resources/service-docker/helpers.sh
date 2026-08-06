@@ -15,7 +15,7 @@ function log() {
 
 function docker_get_latest_release() {
   local latest=""
-  latest=$(curl -s https://api.github.com/repos/aktin/dwh-j2ee/tags \
+  latest=$(curl -s __DWH_GITHUB_TAGS_API__ \
     | grep -oP '"name":\s*"\K[^"]+' \
     | sort -V \
     | tail -1)
@@ -71,7 +71,7 @@ function docker_get_compose_location_by_container() {
 
 function docker_get_currently_deployed_version() {
   local container_name="$1"
-  installed=$(sudo docker exec "$container_name" /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
+  installed=$(sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
     | awk '{print $1}' \
     | sed 's/dwh-j2ee-\(.*\)\.ear/\1/')
@@ -86,7 +86,7 @@ function docker_wait_for_deployment() {
   installed=""
 
   while (( SECONDS < deadline_ts )); do
-    if deployment_info=$(sudo docker exec "$wildfly_container" /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" 2>/dev/null); then
+    if deployment_info=$(sudo docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" 2>/dev/null); then
       installed=$(
         awk '/dwh-j2ee-.*\.ear/ {
           name = $1
@@ -113,7 +113,7 @@ function docker_wait_for_deployment() {
 
 function docker_get_deployment_status() {
   local container_name="$1"
-  sudo docker exec "$container_name" /opt/wildfly/bin/jboss-cli.sh --connect --command="deployment-info" \
+  sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
     | awk '{print $NF}'
 }

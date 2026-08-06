@@ -12,23 +12,23 @@ set -euo pipefail
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
-source "/usr/lib/__PACKAGE_NAME__/helpers.sh"
+source "__PACKAGE_LIB_DIR__/helpers.sh"
 
 log "Start updating Docker DWH"
 dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
-wildfly_container="$dwh_prefix-wildfly-1"
+wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
 update_dir="$(docker_ensure_update_dir $dwh_prefix)"
 exec > >(tee -a "$update_dir/log") 2>&1
 compose_dir="$(docker_get_compose_location_by_container $wildfly_container)"
 
 # --------- Pre-update preparation ----------------------------
-sudo docker cp "$wildfly_container":/opt/wildfly/standalone/log/server.log "$update_dir"
+sudo docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir"
 
 # --------- Main update process----------------------------
 log "Starting Docker update process"
 cd "$compose_dir"
 sudo docker compose down
-curl -LO https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml
+curl -LO __DOCKER_COMPOSE_RELEASE_URL__
 sudo docker compose pull
 sudo docker compose up -d
 docker_wait_for_deployment "$wildfly_container"
@@ -43,5 +43,5 @@ EOF
 
 # --------- CLEANUP ----------------------------
 # copy old update log into new container
-sudo docker cp "$update_dir/server.log" "$dwh_prefix-wildfly-1":/opt/wildfly/standalone/log/server.log.1
+sudo docker cp "$update_dir/server.log" "${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__":__WILDFLY_LOG_FILE__.1
 

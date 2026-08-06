@@ -10,7 +10,7 @@
 Description=AKTIN Docker Update Socket
 
 [Socket]
-ListenStream=0.0.0.0:1005
+ListenStream=__BIND_ADDR_ALL__:__PORT_DOCKER_UPDATE__
 Accept=Yes
 
 [Install]

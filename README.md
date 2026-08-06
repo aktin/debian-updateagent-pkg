@@ -49,6 +49,13 @@ That helper applies host-coupled configuration such as `wildfly` ownership and e
 - Socket configurations: `/lib/systemd/system`
 - APT hook: `/etc/apt/apt.conf.d/99aktin-notaufnahme-updateagent-info`
 
+## Configuration
+All configuration for this package — filesystem paths, socket ports, service/user names,
+external URLs — lives in two files under `src/resources/`: `versions` (the package version) and
+`config` (everything else). Nothing else in the repo should contain a hard-coded path, port, or
+URL; templates reference these values via `__PLACEHOLDER__` tokens that `build.sh` substitutes at
+build time.
+
 ## Building
 ```bash
 ./src/debian/build.sh [--cleanup] [--skip-deb-build] [--full-clean]

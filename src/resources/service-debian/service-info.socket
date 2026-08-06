@@ -10,7 +10,7 @@
 Description=AKTIN Update Info Socket
 
 [Socket]
-ListenStream=127.0.0.1:1002
+ListenStream=__BIND_ADDR_LOCAL__:__PORT_UPDATE_INFO__
 Accept=Yes
 
 [Install]
