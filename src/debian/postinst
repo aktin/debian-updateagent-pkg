@@ -20,32 +20,6 @@ readonly INSTANCE_SETUP_SCRIPT="__PACKAGE_LIB_DIR__/socket-setup"
 source __PREINSTALL_SUMMARY_FILE__
 
 
-init_update_directory() {
-  log_info "Creating AKTIN update directory..."
-  if ! mkdir -p "${UPDATE_DIR}"; then
-    log_error "Failed to create update directory"
-    exit 1
-  fi
-  log_success "Update directory created"
-}
-
-docker_init_update_directories() {
-  local volumes_basedir="__DOCKER_VOLUMES_DIR__"
-  declare -a aktin_dirs=()
-
-  while IFS= read -r -d '' dir; do
-      log_info "found docker data path: $dir"
-      update_dir="$dir/_data/update"
-      mkdir -p "$update_dir"
-      log_success "created update dir: $update_dir"
-  done < <(find "$volumes_basedir" -type d -name "*_aktin_data" -print0)
-}
-
-init_update_directories() {
-  [ $debian_installed -eq 0 ] && init_update_directory
-  [ $docker_installed -eq 0 ] && docker_init_update_directories
-}
-
 reload_systemd() {
   if command -v systemctl >/dev/null 2>&1; then
     log_info "Reloading systemd daemon..."
@@ -61,8 +35,8 @@ reload_systemd() {
 
 ensure_persistent_journal() {
   if ! command -v journalctl >/dev/null 2>&1; then
-    log_warn "journalctl is not available; skipping persistent journal setup"
-    return
+    log_error "journalctl is not available; the persistent journal is the main logging target and installation cannot continue"
+    exit 1
   fi
 
   if [[ -d __JOURNAL_DIR__ ]]; then
@@ -87,8 +61,6 @@ main() {
     configure)
       # Runs during installation/upgrade after files have been unpacked.
       # Host-specific setup is intentionally deferred to the instance helper.
-      init_update_directories
-      reload_systemd
       ensure_persistent_journal
       "${INSTANCE_SETUP_SCRIPT}" configure
       ;;
