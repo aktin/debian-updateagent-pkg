@@ -23,11 +23,6 @@ log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; logger -t "${PACKAGE_NA
 log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.warning -- "$1" 2>/dev/null || true; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NAME}" -p user.err -- "$1" 2>/dev/null || true; }
 
-init_update_directory() {
-  log_info "Creating AKTIN update directory..."
-  mkdir -p "${UPDATE_DIR}"
-  log_success "Update directory created"
-}
 
 setup_socket_services() {
   log_info "Enabling and starting socket services..."
@@ -68,7 +63,6 @@ main() {
 
   case "${operation}" in
     configure)
-      init_update_directory
       setup_socket_services
       ;;
     remove)
