@@ -1,0 +1,36 @@
+################################################################################
+# Central configuration for the AKTIN update agent package.
+#
+# Every host path, network setting and external endpoint used by build.sh and
+# by the templates/maintainer scripts it renders (via __PLACEHOLDER__ tokens)
+# lives here. Change a value once, rebuild, and it propagates everywhere.
+################################################################################
+
+# --- Package identity ---
+PACKAGE_NAME="aktin-notaufnahme-updateagent"
+
+# --- Filesystem paths ---
+AKTIN_UPDATE_DIR="/var/lib/aktin/update"
+DOCKER_VOLUMES_DIR="/var/lib/docker/volumes/"
+JOURNAL_DIR="/var/log/journal"
+PREINSTALL_SUMMARY_FILE="/tmp/summary_aktin-updateagent_preinstall.txt"
+
+# --- WildFly (Debian-native DWH) ---
+WILDFLY_SERVICE="wildfly.service"
+WILDFLY_USER="wildfly"
+WILDFLY_CLI="/opt/wildfly/bin/jboss-cli.sh"
+WILDFLY_LOG_FILE="/opt/wildfly/standalone/log/server.log"
+
+# --- Docker DWH ---
+WILDFLY_CONTAINER_SUFFIX="-wildfly-1"
+REQUIRED_DOCKER_IMAGES="ghcr.io/aktin/notaufnahme-dwh-wildfly ghcr.io/aktin/notaufnahme-dwh-httpd ghcr.io/aktin/notaufnahme-dwh-database"
+DWH_GITHUB_TAGS_API="https://api.github.com/repos/aktin/dwh-j2ee/tags"
+DOCKER_COMPOSE_RELEASE_URL="https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml"
+
+# --- Socket listen addresses / ports ---
+BIND_ADDR_LOCAL="127.0.0.1"
+BIND_ADDR_ALL="0.0.0.0"
+PORT_UPDATE=1003
+PORT_UPDATE_INFO=1002
+PORT_DOCKER_UPDATE=1005
+PORT_DOCKER_UPDATE_INFO=1004

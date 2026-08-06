@@ -15,12 +15,12 @@ log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; logger -t "${PACKAGE_NAME}" -
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NAME}" -p user.err -- "$1" 2>/dev/null || true; }
 
 readonly OPERATION="${1}"
-readonly UPDATE_DIR="/var/lib/aktin/update"
-readonly DEBIAN_SERVICE="wildfly.service"
+readonly UPDATE_DIR="__AKTIN_UPDATE_DIR__"
+readonly DEBIAN_SERVICE="__WILDFLY_SERVICE__"
 
 # Requirement: Any kind of dwh has to be installed
 is_installed_debian() {
-  if systemctl list-unit-files | grep -q "wildfly"; then
+  if systemctl list-unit-files | grep -q "__WILDFLY_SERVICE__"; then
       log_info "WildFly service is installed"
       return 0
   else
@@ -33,11 +33,7 @@ is_installed_docker() {
   command -v docker >/dev/null 2>&1 || return 1   # return 1 if docker is not in PATH
 
   # check repositories of installed images
-  local required="
-ghcr.io/aktin/notaufnahme-dwh-wildfly
-ghcr.io/aktin/notaufnahme-dwh-httpd
-ghcr.io/aktin/notaufnahme-dwh-database
-"
+  local required="__REQUIRED_DOCKER_IMAGES__"
   local installed=$(docker images --format "{{.Repository}}")
   for img in $required; do
     if ! echo "$installed" | grep -qx "$img"; then
@@ -63,7 +59,7 @@ main() {
       log_info "debian dwh status: $debian_status"
       log_info "docker dwh status: $docker_status"
 
-      cat <<EOF > "/tmp/summary_aktin-updateagent_preinstall.txt"
+      cat <<EOF > "__PREINSTALL_SUMMARY_FILE__"
 debian_installed=$debian_status
 docker_installed=$docker_status
 EOF

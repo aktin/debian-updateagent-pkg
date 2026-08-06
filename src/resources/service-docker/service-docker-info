@@ -12,10 +12,10 @@ set -euo pipefail
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
-source "/usr/lib/__PACKAGE_NAME__/helpers.sh"
+source "__PACKAGE_LIB_DIR__/helpers.sh"
 
 dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
-wildfly_container="$dwh_prefix-wildfly-1"
+wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
 update_dir="$(docker_ensure_update_dir $dwh_prefix)"
 
 installed="$(docker_get_currently_deployed_version $wildfly_container)"

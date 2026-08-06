@@ -15,7 +15,7 @@ log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; logger -t "${PACKAGE_NAME}" -
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NAME}" -p user.err -- "$1" 2>/dev/null || true; }
 
 readonly OPERATION="${1}"
-readonly SOCKET_MANAGEMENT_SCRIPT="/usr/lib/__PACKAGE_NAME__/socket-setup"
+readonly SOCKET_MANAGEMENT_SCRIPT="__PACKAGE_LIB_DIR__/socket-setup"
 
 
 rm_update_directory() {
