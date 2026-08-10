@@ -16,7 +16,7 @@ logger -t "${PACKAGE_NAME}" -p user.info -- "A client has triggered update info 
 # is handled by __PACKAGE_NAME__-docker-info instead. This runs as an APT Post-Invoke
 # hook on every host regardless of deployment type, so a mismatch here is expected
 # (not an error) and must stay silent to APT; only the journal records it.
-if [ -z systemctl list-unit-files | grep -q '__WILDFLY_SERVICE__' ]; then
+if ! systemctl list-unit-files | grep -q '__WILDFLY_SERVICE__'; then
   logger -t "${PACKAGE_NAME}" -p user.info -- "wildfly.service is not installed on this host; nothing to report on" 2>/dev/null || true
   exit 0
 fi
