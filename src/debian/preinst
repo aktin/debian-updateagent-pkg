@@ -49,20 +49,6 @@ main() {
   case "$OPERATION" in
     install)
       # Runs during package installation before unpacking archive.
-      set +e
-      is_installed_debian
-      debian_status=$?
-      is_installed_docker
-      docker_status=$?
-      set -e
-
-      log_info "debian dwh status: $debian_status"
-      log_info "docker dwh status: $docker_status"
-
-      cat <<EOF > "__PREINSTALL_SUMMARY_FILE__"
-debian_installed=$debian_status
-docker_installed=$docker_status
-EOF
       ;;
     upgrade)
       # Runs during package upgrade before unpacking new archive.

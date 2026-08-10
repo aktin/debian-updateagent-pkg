@@ -1,0 +1,10 @@
+# ----------------------------------------------
+# File Name:    99__PACKAGE_NAME__-docker-info
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         06 Aug 26
+# Purpose:      APT hook to trigger Docker DWH version info update after package lists are updated
+# ----------------------------------------------
+
+# Run version info check for every docker DWH tenant after each apt update
+APT::Update::Post-Invoke {"/usr/bin/__PACKAGE_NAME__-docker-info";};

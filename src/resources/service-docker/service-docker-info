@@ -9,19 +9,30 @@
 
 set -euo pipefail
 
+readonly PACKAGE_NAME="__PACKAGE_NAME__"
+
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
-dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
-wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
-update_dir="$(docker_ensure_update_dir $dwh_prefix)"
+# This script also runs as an APT Post-Invoke hook on every host regardless of
+# deployment type, so a non-docker host is expected here (not an error) and must
+# stay silent to APT; only the journal records it.
+if ! command -v docker >/dev/null 2>&1; then
+  logger -t "${PACKAGE_NAME}" -p user.info -- "docker is not available on this host; nothing to report on" 2>/dev/null || true
+  exit 0
+fi
 
-installed="$(docker_get_currently_deployed_version $wildfly_container)"
-latest="$(docker_get_latest_release)"
+write_tenant_info() {
+  local dwh_prefix="$1"
+  local latest="$2"
+  local wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
+  local update_dir installed
+  update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
+  installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
-cat <<EOF > "$update_dir/info"
+  cat <<EOF > "$update_dir/info"
 version.installed=${installed}
 version.candidate=${latest}
 version.time=$(date)
@@ -30,3 +41,24 @@ request.client_ip=${client_ip}
 request.client_port=${client_port}
 request.client_prefix=${dwh_prefix}
 EOF
+}
+
+if [[ -z "$client_ip" ]]; then
+  # No client context means this was triggered locally (e.g. the APT Post-Invoke
+  # hook), not via a socket-activated network connection. Refresh every DWH tenant
+  # on this host instead of resolving a single one from the (absent) client IP.
+  latest="$(docker_get_latest_release)"
+  prefixes="$(docker_get_all_compose_prefixes)"
+  if [[ -z "$prefixes" ]]; then
+    logger -t "${PACKAGE_NAME}" -p user.info -- "no docker DWH tenants found on this host; nothing to report on" 2>/dev/null || true
+    exit 0
+  fi
+  while IFS= read -r dwh_prefix; do
+    write_tenant_info "$dwh_prefix" "$latest"
+  done <<<"$prefixes"
+  exit 0
+fi
+
+dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
+latest="$(docker_get_latest_release)"
+write_tenant_info "$dwh_prefix" "$latest"
