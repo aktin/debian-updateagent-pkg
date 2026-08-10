@@ -22,6 +22,12 @@ function docker_get_latest_release() {
   echo "$latest"
 }
 
+function docker_get_all_compose_prefixes() {
+  docker ps --format '{{.Names}}' \
+    | grep -- '__WILDFLY_CONTAINER_SUFFIX__$' \
+    | sed 's/__WILDFLY_CONTAINER_SUFFIX__$//'
+}
+
 function get_compose_prefix_from_ip() {
   local ip="$1"
   dwh_prefix="$(

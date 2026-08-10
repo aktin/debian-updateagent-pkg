@@ -127,6 +127,7 @@ prepare_service_files() {
 
   mkdir -p "${DIR_BUILD}/etc/apt/apt.conf.d"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/apt.update.post-invoke" > "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-info"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/apt.update.post-invoke" > "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-docker-info"
 
   mkdir -p "${DIR_BUILD}${PACKAGE_LIB_DIR}"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/socket-setup" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"

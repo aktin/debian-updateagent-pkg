@@ -17,7 +17,7 @@ log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NA
 readonly OPERATION="${1}"
 readonly UPDATE_DIR="__AKTIN_UPDATE_DIR__"
 readonly INSTANCE_SETUP_SCRIPT="__PACKAGE_LIB_DIR__/socket-setup"
-source __PREINSTALL_SUMMARY_FILE__
+[ -f __PREINSTALL_SUMMARY_FILE__ ] && source __PREINSTALL_SUMMARY_FILE__
 
 
 reload_systemd() {
