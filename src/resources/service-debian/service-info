@@ -11,6 +11,7 @@ set -euo pipefail
 
 readonly PACKAGE_NAME="__PACKAGE_NAME__"
 
+logger -t "${PACKAGE_NAME}" -p user.info -- "A client has triggered update info socket for debian data warehouses" 2>/dev/null || true
 # Only a Debian-native WildFly install is in scope for this script; a Docker-based DWH
 # is handled by __PACKAGE_NAME__-docker-info instead. This runs as an APT Post-Invoke
 # hook on every host regardless of deployment type, so a mismatch here is expected

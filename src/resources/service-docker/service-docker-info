@@ -16,6 +16,7 @@ client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
+logger -t "${PACKAGE_NAME}" -p user.info -- "A client has triggered update info socket for docker data warehouses" 2>/dev/null || true
 # This script also runs as an APT Post-Invoke hook on every host regardless of
 # deployment type, so a non-docker host is expected here (not an error) and must
 # stay silent to APT; only the journal records it.
@@ -43,11 +44,11 @@ request.client_prefix=${dwh_prefix}
 EOF
 }
 
+latest="$(docker_get_latest_release)"
 if [[ -z "$client_ip" ]]; then
   # No client context means this was triggered locally (e.g. the APT Post-Invoke
   # hook), not via a socket-activated network connection. Refresh every DWH tenant
   # on this host instead of resolving a single one from the (absent) client IP.
-  latest="$(docker_get_latest_release)"
   prefixes="$(docker_get_all_compose_prefixes)"
   if [[ -z "$prefixes" ]]; then
     logger -t "${PACKAGE_NAME}" -p user.info -- "no docker DWH tenants found on this host; nothing to report on" 2>/dev/null || true
@@ -57,8 +58,9 @@ if [[ -z "$client_ip" ]]; then
     write_tenant_info "$dwh_prefix" "$latest"
   done <<<"$prefixes"
   exit 0
+else
+  dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
+  write_tenant_info "$dwh_prefix" "$latest"
+  exit 0
 fi
 
-dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
-latest="$(docker_get_latest_release)"
-write_tenant_info "$dwh_prefix" "$latest"
