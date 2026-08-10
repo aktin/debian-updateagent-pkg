@@ -13,7 +13,11 @@ StartLimitBurst=3
 StartLimitIntervalSec=300
 
 [Service]
-ExecStart=apt update
+# REMOTE_ADDR/REMOTE_PORT are set by systemd for this Accept=yes socket instance;
+# unset them before running apt so its Post-Invoke hooks (which also run for
+# unrelated services, e.g. the docker DWH info hook) don't mistake this debian
+# socket's client for a hit on their own socket.
+ExecStart=env -u REMOTE_ADDR -u REMOTE_PORT apt update
 SyslogIdentifier=__PACKAGE_NAME__
 # Restart on failure but not too frequently
 Restart=on-failure
