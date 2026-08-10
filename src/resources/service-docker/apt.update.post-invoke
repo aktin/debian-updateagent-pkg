@@ -6,5 +6,9 @@
 # Purpose:      APT hook to trigger Docker DWH version info update after package lists are updated
 # ----------------------------------------------
 
-# Run version info check for every docker DWH tenant after each apt update
-APT::Update::Post-Invoke {"/usr/bin/__PACKAGE_NAME__-docker-info";};
+# Run version info check for every docker DWH tenant after each apt update.
+# REMOTE_ADDR/REMOTE_PORT are explicitly cleared: apt (and thus this hook) may
+# itself be a child of a socket-activated service (e.g. the debian info socket's
+# "apt update"), which would otherwise leak that unrelated client's address in
+# and make this script mistake a plain apt run for its own socket being hit.
+APT::Update::Post-Invoke {"env -u REMOTE_ADDR -u REMOTE_PORT /usr/bin/__PACKAGE_NAME__-docker-info";};
