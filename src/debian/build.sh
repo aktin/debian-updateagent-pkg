@@ -1,10 +1,11 @@
 #!/bin/bash
 #--------------------------------------
 # Script Name:  build.sh
-# Version:      1.1
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         06 Dec 24
-# Purpose:      Builds the AKTIN update agent Debian package. Creates service files, management scripts, and builds the final package with proper
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         11 Aug 26
+# Purpose:      Builds the AKTIN update agent Debian package. Injects variables into maintainer scripts.
+#               Creates service files, management scripts, and builds the final package with proper
 #               versioning and dependencies.
 #--------------------------------------
 
@@ -50,7 +51,6 @@ done
 readonly DIR_DEBIAN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly DIR_SRC="$(dirname "${DIR_DEBIAN}")"
 readonly DIR_RESOURCES="${DIR_SRC}/resources"
-readonly DIR_DOWNLOADS="${DIR_SRC}/downloads"
 
 # Load package configuration and version-specific variables from file
 set -a
@@ -71,7 +71,6 @@ readonly SED_ARGS=(
   -e "s|__AKTIN_UPDATE_DIR__|${AKTIN_UPDATE_DIR}|g"
   -e "s|__DOCKER_VOLUMES_DIR__|${DOCKER_VOLUMES_DIR}|g"
   -e "s|__JOURNAL_DIR__|${JOURNAL_DIR}|g"
-  -e "s|__PREINSTALL_SUMMARY_FILE__|${PREINSTALL_SUMMARY_FILE}|g"
   -e "s|__WILDFLY_SERVICE__|${WILDFLY_SERVICE}|g"
   -e "s|__WILDFLY_USER__|${WILDFLY_USER}|g"
   -e "s|__WILDFLY_CLI__|${WILDFLY_CLI}|g"
@@ -144,7 +143,6 @@ prepare_management_scripts_and_files() {
   # Replace placeholders
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/control" > "${DIR_BUILD}/DEBIAN/control"
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
-  sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/preinst" > "${DIR_BUILD}/DEBIAN/preinst"
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/postrm" > "${DIR_BUILD}/DEBIAN/postrm"
 
