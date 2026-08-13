@@ -3,8 +3,8 @@
 # Script Name:  helpers.sh
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         25 Jun 26
-# Purpose:      Service script to collect DWH package version information for docker DWHs
+# Date:         13 Aug 26
+# Purpose:      Library for general helper functions 
 #--------------------------------------
 
 
@@ -13,7 +13,7 @@ function log() {
   echo "[LOGGING] tenant=${dwh_prefix:-unknown} $message" >&2
 }
 
-function docker_get_latest_release() {
+function get_latest_j2ee_release() {
   local latest=""
   latest=$(curl -s __DWH_GITHUB_TAGS_API__ \
     | grep -oP '"name":\s*"\K[^"]+' \
@@ -22,14 +22,20 @@ function docker_get_latest_release() {
   echo "$latest"
 }
 
+# find every ...__WILDFLY_CONTAINER_SUFFIX__ and by that every existing docker data warehouse.
+# Extract the identifier for each data warehouse from the container name.
 function docker_get_all_compose_prefixes() {
   docker ps --format '{{.Names}}' \
     | grep -- '__WILDFLY_CONTAINER_SUFFIX__$' \
     | sed 's/__WILDFLY_CONTAINER_SUFFIX__$//'
 }
 
+# Find a docker data warehouse identifier, by matching the requesting client's IP against existing
+# docker containers and their internal IP adresses.
 function get_compose_prefix_from_ip() {
   local ip="$1"
+
+  # list all docker containers and their network interfaces in a loop. Then match the container interfaces against the IP of the requesting client.
   dwh_prefix="$(
     docker ps -q | while read -r cid; do
       docker inspect \
@@ -53,6 +59,7 @@ function docker_ensure_update_dir() {
   echo "$update_dir"
 }
 
+# Find the compose.yml file location for a given container name.
 function docker_get_compose_location_by_container() {
   local container_name="$1"
   compose_container="$container_name"
@@ -75,6 +82,7 @@ function docker_get_compose_location_by_container() {
   echo "$compose_dir"
 }
 
+# This function finds the data warehouse version inside a given wildfly container. It uses the jboss CLI inside the container.
 function docker_get_currently_deployed_version() {
   local container_name="$1"
   installed=$(sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
@@ -114,9 +122,11 @@ function docker_wait_for_deployment() {
 
   if [[ -z "$installed" ]]; then
     log "WildFly deployment was not available after ${timeout_seconds}s"
+    exit 1
   fi
 }
 
+# Use JBoss CLI inside wildfly container to obtain data warehouse deployment status
 function docker_get_deployment_status() {
   local container_name="$1"
   sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
@@ -124,6 +134,9 @@ function docker_get_deployment_status() {
     | awk '{print $NF}'
 }
 
+
+# Validate if data warehouse is deployed correctly and matches the deployed version against the latest candidate version.
+# returns: true if matching, false if not
 function docker_post_update_validation() {
   wildfly_container="$1"
 
@@ -134,7 +147,7 @@ function docker_post_update_validation() {
   status="$(docker_get_deployment_status $wildfly_container)"
   log "Got deployment status $status"
 
-  candidate="$(docker_get_latest_release)"
+  candidate="$(get_latest_j2ee_release)"
   log "Got target candidate $candidate"
 
   if [[ "$installed" == "$candidate" && "$status" == "OK" ]]; then

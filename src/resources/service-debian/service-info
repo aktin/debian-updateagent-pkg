@@ -1,9 +1,9 @@
 #!/bin/bash
 #--------------------------------------
 # Script Name:  __PACKAGE_NAME__-info
-# Version:      1.0
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         14 Nov 24
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         13 Aug 26
 # Purpose:      Service script to collect DWH package version information
 #--------------------------------------
 
@@ -12,17 +12,26 @@ set -euo pipefail
 readonly PACKAGE_NAME="__PACKAGE_NAME__"
 
 logger -t "${PACKAGE_NAME}" -p user.info -- "A client has triggered update info socket for debian data warehouses" 2>/dev/null || true
-# Only a Debian-native WildFly install is in scope for this script; a Docker-based DWH
-# is handled by __PACKAGE_NAME__-docker-info instead. This runs as an APT Post-Invoke
-# hook on every host regardless of deployment type, so a mismatch here is expected
-# (not an error) and must stay silent to APT; only the journal records it.
-if [ -z "$(systemctl list-unit-files | grep "wildfly.service")" ]; then
-  logger -t "${PACKAGE_NAME}" -p user.info -- "wildfly.service is not installed on this host; nothing to report on" 2>/dev/null || true
-  exit 0
-fi
 
-# Ensure update directory exists
-mkdir -p "__AKTIN_UPDATE_DIR__"
+ensure_debian_data_warehouse() {
+  if [ -z "$(systemctl list-unit-files | grep "wildfly.service")" ]; then
+    logger -t "${PACKAGE_NAME}" -p user.info -- "wildfly.service is not installed on this host; nothing to report on" 2>/dev/null || true
+    exit 0
+  fi
+}
+
+ensure_update_dir() {
+  mkdir -p "__AKTIN_UPDATE_DIR__"
+}
+
+ensure_update_dir_ownership() {
+  if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
+    echo "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__" >&2
+  fi
+}
+
+ensure_debian_data_warehouse
+ensure_update_dir
 
 # Get package versions
 installed=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Installed:\s*(.*)$/\1/p')
@@ -35,7 +44,4 @@ version.candidate=${candidate}
 version.time=$(date)
 EOF
 
-# WildFly reads its own update status from this directory; keep it wildfly-owned.
-if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
-  echo "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__" >&2
-fi
+ensure_update_dir_ownership

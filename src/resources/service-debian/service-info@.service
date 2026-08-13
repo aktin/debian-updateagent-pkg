@@ -1,8 +1,8 @@
 # ----------------------------------------------
 # Unit Name:    __PACKAGE_NAME__-info@.service
-# Version:      1.0
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         14 Nov 24
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         13 Aug 26
 # Purpose:      Service unit for AKTIN update info checks
 # ----------------------------------------------
 
@@ -14,9 +14,7 @@ StartLimitIntervalSec=300
 
 [Service]
 # REMOTE_ADDR/REMOTE_PORT are set by systemd for this Accept=yes socket instance;
-# unset them before running apt so its Post-Invoke hooks (which also run for
-# unrelated services, e.g. the docker DWH info hook) don't mistake this debian
-# socket's client for a hit on their own socket.
+# unset them before running apt to avoid data leakage.
 ExecStart=env -u REMOTE_ADDR -u REMOTE_PORT apt update
 SyslogIdentifier=__PACKAGE_NAME__
 # Restart on failure but not too frequently

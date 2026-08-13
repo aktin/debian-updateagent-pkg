@@ -1,8 +1,8 @@
 # ----------------------------------------------
 # Unit Name:    __PACKAGE_NAME__-info.socket
-# Version:      1.0
+# Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         14 Nov 24
+# Date:         13 Aug 26
 # Purpose:      Socket activation unit for AKTIN update info service
 # ----------------------------------------------
 

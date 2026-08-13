@@ -4,7 +4,7 @@
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
 # Date:         12 Aug 26
-# Purpose:      Applies host-specific runtime setup for an AKTIN instance.
+# Purpose:      Create/Remove sockets on the host.
 #--------------------------------------
 
 set -euo pipefail
@@ -23,6 +23,7 @@ log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; logger -t "${PACKAGE_NA
 log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.warning -- "$1" 2>/dev/null || true; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NAME}" -p user.err -- "$1" 2>/dev/null || true; }
 
+# enable and start update-agent sockets on the host
 setup_socket_services() {
   log_info "Enabling and starting socket services..."
   systemctl daemon-reload
@@ -34,6 +35,7 @@ setup_socket_services() {
   log_success "Socket services initialized"
 }
 
+# stop and disable update-agent sockets on the host
 stop_socket_services() {
   if ! command -v systemctl >/dev/null 2>&1; then
     log_warn "systemctl is not available; skipping socket shutdown"

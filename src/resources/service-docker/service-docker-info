@@ -3,7 +3,7 @@
 # Script Name:  __PACKAGE_NAME__-docker-info
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         07 Apr 26
+# Date:         13 Aug 26
 # Purpose:      Service script to collect DWH package version information for docker DWHs
 #--------------------------------------
 
@@ -17,9 +17,8 @@ client_port="${REMOTE_PORT:-}"
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
 logger -t "${PACKAGE_NAME}" -p user.info -- "A client has triggered update info socket for docker data warehouses" 2>/dev/null || true
-# This script also runs as an APT Post-Invoke hook on every host regardless of
-# deployment type, so a non-docker host is expected here (not an error) and must
-# stay silent to APT; only the journal records it.
+
+# verify docker on host
 if ! command -v docker >/dev/null 2>&1; then
   logger -t "${PACKAGE_NAME}" -p user.info -- "docker is not available on this host; nothing to report on" 2>/dev/null || true
   exit 0
@@ -44,21 +43,22 @@ request.client_prefix=${dwh_prefix}
 EOF
 }
 
-latest="$(docker_get_latest_release)"
+latest="$(get_latest_j2ee_release)"
 if [[ -z "$client_ip" ]]; then
-  # No client context means this was triggered locally (e.g. the APT Post-Invoke
-  # hook), not via a socket-activated network connection. Refresh every DWH tenant
-  # on this host instead of resolving a single one from the (absent) client IP.
+  # This code runs when the script has no client. For example, if triggered by apt post-invoke hook
   prefixes="$(docker_get_all_compose_prefixes)"
   if [[ -z "$prefixes" ]]; then
     logger -t "${PACKAGE_NAME}" -p user.info -- "no docker DWH tenants found on this host; nothing to report on" 2>/dev/null || true
     exit 0
   fi
+
+  # write update info to each docker data warehouse
   while IFS= read -r dwh_prefix; do
     write_tenant_info "$dwh_prefix" "$latest"
   done <<<"$prefixes"
   exit 0
 else
+  # This code runs when a specific client requested an update info. Creates the info file only for that client.
   dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
   write_tenant_info "$dwh_prefix" "$latest"
   exit 0

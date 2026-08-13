@@ -4,13 +4,12 @@
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
 # Date:         11 Aug 26
-# Purpose:      Service script to handle DWH package updates
+# Purpose:      Service script to handle DWH package updates for debian installations only.
 #--------------------------------------
 
 set -euo pipefail
 
-# Only a Debian-native WildFly install is in scope for this script; a Docker-based DWH
-# is handled by __PACKAGE_NAME__-docker instead.
+# Cancel execution if no debian data warehouse exists. Todo: find direct identification method for the requesting client, if it's actually the debian data warehouse and not a data warehouse using the wrong port
 if ! systemctl list-unit-files | grep -q '^__WILDFLY_SERVICE__'; then
   echo "E: wildfly.service is not installed on this host; nothing to update." >&2
   exit 1
@@ -21,9 +20,7 @@ mkdir -p "__AKTIN_UPDATE_DIR__"
 
 # Perform update and capture result
 if ! { apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install "__DWH_PACKAGE_NAME__" > "__AKTIN_UPDATE_DIR__/log" 2>&1 || echo E: update failed; } | grep -q '^[WE]:'; then
-  # Dirty workout-around, replace as soon as possible
-  # The restart is needed because package updates may leave deployments
-  # in failed state until WildFly is restarted.
+  # Restart deamon and wildfly if package update left deployments in failed state. Todo: it is dirty to force-reload complete daemon, find cleaner way
   systemctl daemon-reload
   systemctl restart __WILDFLY_SERVICE__
   sleep 30
@@ -32,17 +29,15 @@ else
   success="false"
 fi
 
-# Mirror the apt-get transcript into the journal too, alongside the persisted file above,
-# so it shows up in the same unified log stream as everything else in this package.
+# Mirror the apt-get transcript into the central journal for logging
 logger -t "__PACKAGE_NAME__" -p user.info -f "__AKTIN_UPDATE_DIR__/log" 2>/dev/null || true
 
-# Write result
 cat <<EOF >"__AKTIN_UPDATE_DIR__/result"
 update.success=${success}
 update.time=$(date)
 EOF
 
-# WildFly reads its own update status from this directory; keep it wildfly-owned.
+# ensure wildfly ownership of update directory
 if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
   echo "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__" >&2
 fi
