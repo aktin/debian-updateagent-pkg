@@ -3,36 +3,57 @@
 # Script Name:  __PACKAGE_NAME__-docker
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         07 Apr 26
+# Date:         13 Aug 26
 # Purpose:      Service script to handle DWH package updates for docker DWHs
 #--------------------------------------
 
 set -euo pipefail
 
+# collect client information
 client_ip="${REMOTE_ADDR:-}"
 client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
 log "Start updating Docker DWH"
+# --------- Pre-update preparation ----------------------------
 dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
 wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
 update_dir="$(docker_ensure_update_dir $dwh_prefix)"
-exec > >(tee -a "$update_dir/log") 2>&1
+exec > >(tee -a "$update_dir/log") 2>&1   # save update log to the container, additionally to journal (main log location)
 compose_dir="$(docker_get_compose_location_by_container $wildfly_container)"
 
-# --------- Pre-update preparation ----------------------------
+# persist latest wildfly log on host
 sudo docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir"
 
 # --------- Main update process----------------------------
 log "Starting Docker update process"
 cd "$compose_dir"
 sudo docker compose down
+
+# backup old compose
+mkdir -p backup
+cp compose.yml backup/compose.yml
+
 curl -LO __DOCKER_COMPOSE_RELEASE_URL__
 sudo docker compose pull
 sudo docker compose up -d
 docker_wait_for_deployment "$wildfly_container"
 successful="$(docker_post_update_validation $wildfly_container)"
+
+# reload old data warehouse on un-successful update
+if "$successful" == "false"; then
+  log "starting docker was not sucessful, restoring old configuration"
+  cd "$compose_dir"
+  cp backup/compose.yml compose.yml
+  sudo docker compose up -d
+  docker_wait_for_deployment "$wildfly_container"
+  successful_backup="$(docker_post_update_validation $wildfly_container)"
+  log "Status of data warehouse restoring: $successful_backup"
+else
+  cd "$compose_dir"
+  rm -r backup
+fi
 
 cat <<EOF >"$update_dir/result"
 update.success=${successful}
