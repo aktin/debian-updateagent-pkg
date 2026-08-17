@@ -42,7 +42,7 @@ docker_wait_for_deployment "$wildfly_container"
 successful="$(docker_post_update_validation $wildfly_container)"
 
 # reload old data warehouse on un-successful update
-if "$successful" == "false"; then
+if [[ "$successful" == "false" ]]; then
   log "starting docker was not sucessful, restoring old configuration"
   cd "$compose_dir"
   cp backup/compose.yml compose.yml
