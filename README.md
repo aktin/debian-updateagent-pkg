@@ -12,7 +12,7 @@ This Debian package provides automated update management for the [AKTIN DWH syst
 
 ## Installation
 ```bash
-sudo apt-get install -y aktin-notaufnahme-updateagent
+sudo dpkg -i aktin-notaufnahme-updateagent_<version>.deb
 sudo apt-get install -f  # Install missing dependencies if any
 ```
 
