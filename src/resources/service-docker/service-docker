@@ -28,17 +28,15 @@ sudo docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir"
 
 # --------- Main update process----------------------------
 log "Starting Docker update process"
-cd "$compose_dir"
-sudo docker compose down
-
 # backup old compose
+cd "$compose_dir"
 mkdir -p backup
 cp compose.yml backup/compose.yml
 
-curl -LO __DOCKER_COMPOSE_RELEASE_URL__
+curl -fLO __DOCKER_COMPOSE_RELEASE_URL__ || { log "Failed to fetch new compose file, aborting update process"; exit 1; }
+sudo docker compose down
 sudo docker compose pull
 sudo docker compose up -d
-docker_wait_for_deployment "$wildfly_container"
 successful="$(docker_post_update_validation $wildfly_container)"
 
 # reload old data warehouse on un-successful update
@@ -47,7 +45,6 @@ if [[ "$successful" == "false" ]]; then
   cd "$compose_dir"
   cp backup/compose.yml compose.yml
   sudo docker compose up -d
-  docker_wait_for_deployment "$wildfly_container"
   successful_backup="$(docker_post_update_validation $wildfly_container)"
   log "Status of data warehouse restoring: $successful_backup"
 else

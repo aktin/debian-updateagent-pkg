@@ -10,20 +10,21 @@
 set -euo pipefail
 
 readonly PACKAGE_NAME="__PACKAGE_NAME__"
-
-client_ip="${REMOTE_ADDR:-}"
-client_port="${REMOTE_PORT:-}"
+readonly client_ip="${REMOTE_ADDR:-}"
+readonly client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
 logger -t "${PACKAGE_NAME}" -p user.info -- "A client has triggered update info socket for docker data warehouses" 2>/dev/null || true
 
-# verify docker on host
+# verify docker exists on host
 if ! command -v docker >/dev/null 2>&1; then
   logger -t "${PACKAGE_NAME}" -p user.info -- "docker is not available on this host; nothing to report on" 2>/dev/null || true
   exit 0
 fi
 
+# writes a summary file to a docker data warehouse. This file contains package versions, the data warehouse
+# can use to interpret update necessity
 write_tenant_info() {
   local dwh_prefix="$1"
   local latest="$2"
@@ -32,6 +33,7 @@ write_tenant_info() {
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
   installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
+  # populate and write summary file
   cat <<EOF > "$update_dir/info"
 version.installed=${installed}
 version.candidate=${latest}
@@ -43,6 +45,8 @@ request.client_prefix=${dwh_prefix}
 EOF
 }
 
+# Main logic to write update summaries to docker. It distinguishes if a request came
+# from a single data warehouse or from an apt hook.
 latest="$(get_latest_j2ee_release)"
 if [[ -z "$client_ip" ]]; then
   # This code runs when the script has no client. For example, if triggered by apt post-invoke hook
@@ -52,9 +56,15 @@ if [[ -z "$client_ip" ]]; then
     exit 0
   fi
 
-  # write update info to each docker data warehouse
+  # write update info to each docker data warehouse. Logs and skips a tenant, if update info could not be written.
   while IFS= read -r dwh_prefix; do
-    write_tenant_info "$dwh_prefix" "$latest"
+    set +e
+    ( set -e; write_tenant_info "$dwh_prefix" "$latest" )
+    rc=$?
+    set -e
+    if [[ $rc -ne 0 ]]; then
+      log "Failed to write update info for tenant ${dwh_prefix} (exit ${rc}), skipping"
+    fi
   done <<<"$prefixes"
   exit 0
 else
