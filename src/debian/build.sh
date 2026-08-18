@@ -92,8 +92,7 @@ clean_up_build_environment() {
   rm -rf "${DIR_BUILD}"
   if [[ "${FULL_CLEAN}" == true ]]; then
     echo "Performing full clean..."
-    rm -rf "${DIR_SRC}/build"
-    rm -rf "${DIR_DOWNLOADS}"
+    rm -rf "${DIR_SRC}/build" || true
   fi
 }
 

@@ -10,12 +10,14 @@
 set -euo pipefail
 
 readonly PACKAGE_NAME="__PACKAGE_NAME__"
+readonly WILDFLY_SERVICE="__WILDFLY_SERVICE__"
 
 logger -t "${PACKAGE_NAME}" -p user.info -- "A client has triggered update info socket for debian data warehouses" 2>/dev/null || true
 
+# Checks if a debian data warehouse is installed, by searching for the wildfly.service inside deamon
 ensure_debian_data_warehouse() {
-  if [ -z "$(systemctl list-unit-files | grep "wildfly.service")" ]; then
-    logger -t "${PACKAGE_NAME}" -p user.info -- "wildfly.service is not installed on this host; nothing to report on" 2>/dev/null || true
+  if [ -z "$(systemctl list-unit-files | grep $WILDFLY_SERVICE)" ]; then
+    logger -t "${PACKAGE_NAME}" -p user.info -- "$WILDFLY_SERVICE is not installed on this host; nothing to report on" 2>/dev/null || true
     exit 0
   fi
 }

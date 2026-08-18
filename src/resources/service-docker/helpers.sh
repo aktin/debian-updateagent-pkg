@@ -13,17 +13,17 @@ function log() {
   echo "[LOGGING] tenant=${dwh_prefix:-unknown} $message" >&2
 }
 
+# Get version of last released data warehouse, from the AKTIN Github rspository
 function get_latest_j2ee_release() {
   local latest=""
   latest=$(curl -s __DWH_GITHUB_TAGS_API__ \
     | grep -oP '"name":\s*"\K[^"]+' \
     | sort -V \
-    | tail -1)
+    | tail -1) || true
   echo "$latest"
 }
 
-# find every ...__WILDFLY_CONTAINER_SUFFIX__ and by that every existing docker data warehouse.
-# Extract the identifier for each data warehouse from the container name.
+# find every running wildfly-1 container
 function docker_get_all_compose_prefixes() {
   docker ps --format '{{.Names}}' \
     | grep -- '__WILDFLY_CONTAINER_SUFFIX__$' \
@@ -31,20 +31,20 @@ function docker_get_all_compose_prefixes() {
 }
 
 # Find a docker data warehouse identifier, by matching the requesting client's IP against existing
-# docker containers and their internal IP adresses.
+# docker container IPs
 function get_compose_prefix_from_ip() {
   local ip="$1"
 
-  # list all docker containers and their network interfaces in a loop. Then match the container interfaces against the IP of the requesting client.
+  # list all docker containers and their network interfaces and search for the target ip
   dwh_prefix="$(
     docker ps -q | while read -r cid; do
       docker inspect \
       --format '{{.Id}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}} {{index .Config.Labels "com.docker.compose.project"}}' \
       "$cid"
-    done | awk -v ip="$ip" '$0 ~ ip {print $NF; exit}'
+    done | awk -v ip="$ip" '{ for (i = 2; i < NF; i++) if ($i == ip) { print $NF; exit } }'
   )"
 
-  if [[ -z "$dwh_prefix" ]]; then
+  if [[ -z "$ip" || -z "$dwh_prefix" ]]; then
     log "Could not determine Docker Compose project for client IP: ${ip}" >&2
     exit 1
   fi
@@ -85,13 +85,17 @@ function docker_get_compose_location_by_container() {
 # This function finds the data warehouse version inside a given wildfly container. It uses the jboss CLI inside the container.
 function docker_get_currently_deployed_version() {
   local container_name="$1"
+  # "|| true" prevents a no-match grep (deployment not present/ready) from tripping "set -e" via
+  # pipefail and aborting the whole script; an empty result is a valid, callers-handle-it outcome.
   installed=$(sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
     | awk '{print $1}' \
-    | sed 's/dwh-j2ee-\(.*\)\.ear/\1/')
+    | sed 's/dwh-j2ee-\(.*\)\.ear/\1/') || true
   echo "$installed"
 }
 
+# Wait until JBoss is reachable and finds a deployment. Does not check deployment status, only if the deployment exists.
+# returns: 0 if deployment was found, non-zero if timeout was reached.
 function docker_wait_for_deployment() {
   wildfly_container="$1"
   timeout_seconds="${2:-300}"
@@ -111,19 +115,15 @@ function docker_wait_for_deployment() {
         }' <<< "$deployment_info"
       )
 
-      if [[ -n "$installed" ]]; then
-        break
-      fi
+      return 0
     fi
 
     log "WildFly deployment not ready yet, waiting ${check_interval_seconds}s"
     sleep "$check_interval_seconds"
   done
 
-  if [[ -z "$installed" ]]; then
-    log "WildFly deployment was not available after ${timeout_seconds}s"
-    exit 1
-  fi
+  log "WildFly deployment was not available after ${timeout_seconds}s"
+  return 1
 }
 
 # Use JBoss CLI inside wildfly container to obtain data warehouse deployment status
@@ -131,7 +131,7 @@ function docker_get_deployment_status() {
   local container_name="$1"
   sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
-    | awk '{print $NF}'
+    | awk '{print $NF}' || true
 }
 
 
@@ -139,23 +139,23 @@ function docker_get_deployment_status() {
 # returns: true if matching, false if not
 function docker_post_update_validation() {
   wildfly_container="$1"
+  success="false"
 
-  installed="$(docker_get_currently_deployed_version $wildfly_container)"
-  installed="v$installed" # because of git tagging rules adding v before version
-  log "Got installed version $installed"
+  if docker_wait_for_deployment "$wildfly_container"; then
+    installed="$(docker_get_currently_deployed_version $wildfly_container)"
+    installed="v$installed" # because of git tagging rules adding v before version
+    log "Got installed version $installed"
 
-  status="$(docker_get_deployment_status $wildfly_container)"
-  log "Got deployment status $status"
+    status="$(docker_get_deployment_status $wildfly_container)"
+    log "Got deployment status $status"
 
-  candidate="$(get_latest_j2ee_release)"
-  log "Got target candidate $candidate"
+    candidate="$(get_latest_j2ee_release)"
+    log "Got target candidate $candidate"
 
-  if [[ "$installed" == "$candidate" && "$status" == "OK" ]]; then
-    success="true"
-  else
-    success="false"
+    if [[ "$installed" == "$candidate" && "$status" == "OK" ]]; then
+      success="true"
+    fi
+    log "==> Update finished, installed: $installed (status: $status), candidate was $candidate. Update successful: $success"
   fi
-  log "==> Update finished, installed: $installed (status: $status), candidate was $candidate. Update successful: $success"
-
   echo "$success"
 }
