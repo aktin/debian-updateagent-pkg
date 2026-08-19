@@ -15,25 +15,23 @@ readonly client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
-logger -t "${PACKAGE_NAME}" -p user.info -- "A client has triggered update info socket for docker data warehouses" 2>/dev/null || true
-
-# verify docker exists on host
-if ! command -v docker >/dev/null 2>&1; then
-  logger -t "${PACKAGE_NAME}" -p user.info -- "docker is not available on this host; nothing to report on" 2>/dev/null || true
-  exit 0
-fi
+log() {
+  logger -t "${PACKAGE_NAME}" -p user.info -- "$1" 2>/dev/null || true
+}
 
 # writes a summary file to a docker data warehouse. This file contains package versions, the data warehouse
 # can use to interpret update necessity
 write_tenant_info() {
   local dwh_prefix="$1"
   local latest="$2"
+  log "Collecting tenant info for $dwh_prefix"
+
   local wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
   local update_dir installed
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
   installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
-  # populate and write summary file
+  log "Save tenant info summary to update directory"
   cat <<EOF > "$update_dir/info"
 version.installed=${installed}
 version.candidate=${latest}
@@ -45,14 +43,23 @@ request.client_prefix=${dwh_prefix}
 EOF
 }
 
+
+log "A client has triggered update info socket for docker data warehouses"
+# verify docker exists on host
+if ! command -v docker >/dev/null 2>&1; then
+  log "docker is not available on this host; nothing to report on"
+  exit 0
+fi
+
 # Main logic to write update summaries to docker. It distinguishes if a request came
 # from a single data warehouse or from an apt hook.
 latest="$(get_latest_j2ee_release)"
 if [[ -z "$client_ip" ]]; then
+  log "non-dwh client identified"
   # This code runs when the script has no client. For example, if triggered by apt post-invoke hook
   prefixes="$(docker_get_all_compose_prefixes)"
   if [[ -z "$prefixes" ]]; then
-    logger -t "${PACKAGE_NAME}" -p user.info -- "no docker DWH tenants found on this host; nothing to report on" 2>/dev/null || true
+    log "no docker DWH tenants found on this host; nothing to report on"
     exit 0
   fi
 
@@ -68,6 +75,7 @@ if [[ -z "$client_ip" ]]; then
   done <<<"$prefixes"
   exit 0
 else
+  log "dwh client identified"
   # This code runs when a specific client requested an update info. Creates the info file only for that client.
   dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
   write_tenant_info "$dwh_prefix" "$latest"
