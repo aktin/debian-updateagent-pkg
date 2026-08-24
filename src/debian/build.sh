@@ -3,7 +3,7 @@
 # Script Name:  build.sh
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
-# Date:         11 Aug 26
+# Date:         24 Aug 26
 # Purpose:      Builds the AKTIN update agent Debian package. Injects variables into maintainer scripts.
 #               Creates service files, management scripts, and builds the final package with proper
 #               versioning and dependencies.
