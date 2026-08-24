@@ -3,8 +3,9 @@
 # Script Name:  postrm
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         05 Aug 26
-# Purpose:      Cleans up systemd state after package files (including unit files) have been removed by dpkg.
+# Date:         24 Aug 26
+# Purpose:      Cleans up systemd state after package files (including unit files) have been removed by dpkg,
+#               and removes persisted update data when the package is purged.
 #--------------------------------------
 
 readonly PACKAGE_NAME="__PACKAGE_NAME__"
@@ -22,17 +23,46 @@ reload_systemd() {
     if ! systemctl daemon-reload; then
       log_warn "Failed to reload systemd daemon"
     fi
+    log_info "Clearing failed unit instances..."
+    if ! systemctl reset-failed "__PACKAGE_NAME__*"; then
+      log_warn "Failed to clear failed unit instances"
+    fi
   else
     log_warn "systemctl is not available; skipping daemon reload"
   fi
 }
 
+rm_update_directory() {
+  if [[ -d "__AKTIN_UPDATE_DIR__" ]]; then
+    rm -r "__AKTIN_UPDATE_DIR__"
+    log_success "Removed debian update directory at: __AKTIN_UPDATE_DIR__"
+  fi
+}
+
+docker_rm_update_directories() {
+  local volumes_basedir="__DOCKER_VOLUMES_DIR__"
+  while IFS= read -r -d '' dir; do
+    rm -r "$dir"
+    log_success "removed docker update folder: $dir"
+  done < <(find "$volumes_basedir" -type d -wholename "*_aktin_data/_data/update" -print0)
+}
+
+rm_update_directories() {
+  rm_update_directory
+  docker_rm_update_directories
+}
+
 main() {
   set -euo pipefail
   case "$OPERATION" in
-    remove|purge)
+    remove)
       # Runs after package files (including systemd unit files) have already been deleted.
       reload_systemd
+      ;;
+    purge)
+      # Runs after package files have been deleted; the user explicitly asked to remove all traces.
+      reload_systemd
+      rm_update_directories
       ;;
     upgrade|failed-upgrade|disappear)
       ;;
