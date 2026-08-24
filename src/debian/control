@@ -3,7 +3,7 @@ Version: __PACKAGE_VERSION__
 Section: science
 Priority: optional
 Architecture: all
-Depends: unattended-upgrades
+Depends: unattended-upgrades, systemd
 Maintainer: AKTIN IT <it-support@aktin.org>
 Homepage: https://www.aktin.org/
 Description: AKTIN Emergency Department Update Agent Package

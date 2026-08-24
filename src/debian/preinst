@@ -3,7 +3,7 @@
 # Script Name:  preinst
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         10 Apr 26
+# Date:         24 Apr 26
 # Purpose:      Checks target system for requirements. Cancel installation if environment is insufficient
 #--------------------------------------
 
@@ -17,19 +17,11 @@ log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NA
 readonly OPERATION="${1}"
 
 
-ensure_journal_exists() {
-  if ! command -v journalctl >/dev/null 2>&1; then
-    log_error "journalctl is not available; the persistent journal is the main logging target and installation cannot continue"
-    exit 1
-  fi
-}
-
-
 main() {
   set -euo pipefail
   case "$OPERATION" in
     install)
-      ensure_journal_exists
+      # journalctl availability is enforced via Depends: systemd in control.
       ;;
     upgrade)
       # Runs during package upgrade before unpacking new archive.
