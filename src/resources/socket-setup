@@ -35,7 +35,9 @@ setup_socket_services() {
   log_success "Socket services initialized"
 }
 
-# stop and disable update-agent sockets on the host
+# stop update-agent sockets on the host, without disabling them; used before an
+# upgrade so a changed ListenStream/Accept is picked up (systemctl start is a
+# no-op on an already-active unit) once the new unit files are configured
 stop_socket_services() {
   if ! command -v systemctl >/dev/null 2>&1; then
     log_warn "systemctl is not available; skipping socket shutdown"
@@ -46,16 +48,25 @@ stop_socket_services() {
   if ! systemctl stop "${SOCKET_UNITS[@]}"; then
     log_warn "Failed to stop one or more socket services"
   fi
+  log_success "Socket services stopped"
+}
 
+# stop and disable update-agent sockets on the host
+remove_socket_services() {
+  stop_socket_services
+
+  if ! command -v systemctl >/dev/null 2>&1; then
+    return
+  fi
   if ! systemctl disable "${SOCKET_UNITS[@]}"; then
     log_warn "Failed to disable one or more socket services"
   fi
-  log_success "Socket services stopped and disabled"
+  log_success "Socket services disabled"
 }
 
 
 usage() {
-  echo "Usage: $0 <configure|remove>" >&2
+  echo "Usage: $0 <configure|stop|remove>" >&2
   exit 1
 }
 
@@ -66,8 +77,11 @@ main() {
     configure)
       setup_socket_services
       ;;
-    remove)
+    stop)
       stop_socket_services
+      ;;
+    remove)
+      remove_socket_services
       ;;
     *)
       usage

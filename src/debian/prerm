@@ -3,7 +3,7 @@
 # Script Name:  prerm
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
-# Date:         12 Aug 26
+# Date:         24 Aug 26
 # Purpose:      Prepares the system before package files are removed, by stopping systemd sockets
 
 #--------------------------------------
@@ -30,6 +30,17 @@ rm_sockets() {
   fi
 }
 
+stop_sockets() {
+  if [[ -x "${SOCKET_MANAGEMENT_SCRIPT}" ]]; then
+    log_info "Stopping sockets ahead of upgrade..."
+    if ! "${SOCKET_MANAGEMENT_SCRIPT}" stop; then
+      log_warn "Instance-specific socket stop reported an error"
+    fi
+  else
+    log_warn "Socket helper-script not found at ${SOCKET_MANAGEMENT_SCRIPT}; skipping socket stop"
+  fi
+}
+
 main() {
   set -euo pipefail
   case "$OPERATION" in
@@ -38,7 +49,8 @@ main() {
       rm_sockets
       ;;
     upgrade)
-      # Runs during package upgrade before old files are deleted.
+      # Stop sockets, so later "postinst configure" step starts inactive sockets directly, with changed ListenStream/Accept
+      stop_sockets
       ;;
   esac
 }
