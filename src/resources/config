@@ -12,7 +12,6 @@ PACKAGE_NAME="aktin-notaufnahme-updateagent"
 # --- Filesystem paths ---
 AKTIN_UPDATE_DIR="/var/lib/aktin/update"
 DOCKER_VOLUMES_DIR="/var/lib/docker/volumes/"
-JOURNAL_DIR="/var/log/journal"
 
 # --- WildFly (Debian-native DWH) ---
 WILDFLY_SERVICE="wildfly.service"
