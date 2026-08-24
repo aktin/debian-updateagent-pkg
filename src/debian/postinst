@@ -24,6 +24,8 @@ main() {
     configure)
       "${SOCKET_SETUP_SCRIPT}" configure
       ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+      ;;
   esac
 }
 
