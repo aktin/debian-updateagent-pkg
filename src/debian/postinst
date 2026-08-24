@@ -4,7 +4,7 @@
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
 # Date:         12 Aug 26
-# Purpose:      Ensures central logging is active and being persisted. Initiates socket creation.
+# Purpose:      Ensures central logging is active. Initiates socket creation.
 #--------------------------------------
 
 readonly PACKAGE_NAME="__PACKAGE_NAME__"
@@ -18,43 +18,10 @@ readonly OPERATION="${1}"
 readonly SOCKET_SETUP_SCRIPT="__PACKAGE_LIB_DIR__/socket-setup"
 
 
-get_journald_storage_mode() {
-  local storage=""
-  if command -v systemd-analyze >/dev/null 2>&1; then
-    storage="$(systemd-analyze cat-config systemd/journald.conf 2>/dev/null | grep -oP '^\s*Storage=\K\S+' | tail -n1)"
-  fi
-  echo "${storage:-auto}"
-}
-
-ensure_persistent_journal() {
-  local storage_mode
-  storage_mode="$(get_journald_storage_mode)"
-  if [[ "${storage_mode}" == "volatile" || "${storage_mode}" == "none" ]]; then
-    log_warn "systemd-journald Storage=${storage_mode}; package logs will not persist across reboots regardless of __JOURNAL_DIR__"
-    return
-  fi
-
-  if [[ -d __JOURNAL_DIR__ ]]; then
-    log_info "Persistent journal storage already present at __JOURNAL_DIR__"
-    return
-  fi
-
-  log_info "Enabling persistent journal storage so package logs survive reboots..."
-  mkdir -p __JOURNAL_DIR__
-  if command -v systemd-tmpfiles >/dev/null 2>&1; then
-    systemd-tmpfiles --create --prefix __JOURNAL_DIR__ || log_warn "Failed to set up __JOURNAL_DIR__ permissions"
-  fi
-  if command -v systemctl >/dev/null 2>&1; then
-    systemctl restart systemd-journald || log_warn "Failed to restart systemd-journald"
-  fi
-  log_success "Persistent journal storage enabled"
-}
-
 main() {
   set -euo pipefail
   case "$OPERATION" in
     configure)
-      ensure_persistent_journal
       "${SOCKET_SETUP_SCRIPT}" configure
       ;;
   esac
