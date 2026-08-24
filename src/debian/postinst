@@ -18,7 +18,22 @@ readonly OPERATION="${1}"
 readonly SOCKET_SETUP_SCRIPT="__PACKAGE_LIB_DIR__/socket-setup"
 
 
+get_journald_storage_mode() {
+  local storage=""
+  if command -v systemd-analyze >/dev/null 2>&1; then
+    storage="$(systemd-analyze cat-config systemd/journald.conf 2>/dev/null | grep -oP '^\s*Storage=\K\S+' | tail -n1)"
+  fi
+  echo "${storage:-auto}"
+}
+
 ensure_persistent_journal() {
+  local storage_mode
+  storage_mode="$(get_journald_storage_mode)"
+  if [[ "${storage_mode}" == "volatile" || "${storage_mode}" == "none" ]]; then
+    log_warn "systemd-journald Storage=${storage_mode}; package logs will not persist across reboots regardless of __JOURNAL_DIR__"
+    return
+  fi
+
   if [[ -d __JOURNAL_DIR__ ]]; then
     log_info "Persistent journal storage already present at __JOURNAL_DIR__"
     return
