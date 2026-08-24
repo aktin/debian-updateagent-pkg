@@ -3,7 +3,7 @@
 # Script Name:  postinst
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
-# Date:         12 Aug 26
+# Date:         24 Aug 26
 # Purpose:      Ensures central logging is active. Initiates socket creation.
 #--------------------------------------
 

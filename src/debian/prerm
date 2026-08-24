@@ -4,7 +4,7 @@
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
 # Date:         12 Aug 26
-# Purpose:      Prepares the system before package files are removed, by cleaning update directories and systemd sockets
+# Purpose:      Prepares the system before package files are removed, by stopping systemd sockets
 
 #--------------------------------------
 
@@ -17,27 +17,6 @@ log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NA
 
 readonly OPERATION="${1}"
 readonly SOCKET_MANAGEMENT_SCRIPT="__PACKAGE_LIB_DIR__/socket-setup"
-
-
-rm_update_directory() {
-  if [[ -d "__AKTIN_UPDATE_DIR__" ]]; then
-    rm -r "__AKTIN_UPDATE_DIR__"
-    log_success "Removed debian update directory at: __AKTIN_UPDATE_DIR__"
-  fi
-}
-
-docker_rm_update_directories() {
-  local volumes_basedir="__DOCKER_VOLUMES_DIR__"
-  while IFS= read -r -d '' dir; do
-    rm -r "$dir"
-    log_success "removed docker update folder: $dir"
-  done < <(find "$volumes_basedir" -type d -wholename "*_aktin_data/_data/update" -print0)
-}
-
-rm_update_directories() {
-  rm_update_directory
-  docker_rm_update_directories
-}
 
 
 rm_sockets() {
@@ -57,7 +36,6 @@ main() {
     remove)
       # Runs during package removal before files are deleted.
       rm_sockets
-      rm_update_directories
       ;;
     upgrade)
       # Runs during package upgrade before old files are deleted.
