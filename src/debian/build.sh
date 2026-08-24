@@ -61,31 +61,19 @@ readonly PACKAGE_LIB_DIR="/usr/lib/${PACKAGE_NAME}"
 dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
 readonly DIR_BUILD="${DIR_SRC}/build/${PACKAGE_NAME}_${PACKAGE_VERSION}"
 
-# Placeholder substitutions applied uniformly to every templated file; a file
-# that doesn't contain a given __TOKEN__ is simply left unchanged by that -e.
-readonly SED_ARGS=(
-  -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g"
-  -e "s|__PACKAGE_VERSION__|${PACKAGE_VERSION}|g"
-  -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g"
-  -e "s|__PACKAGE_LIB_DIR__|${PACKAGE_LIB_DIR}|g"
-  -e "s|__AKTIN_UPDATE_DIR__|${AKTIN_UPDATE_DIR}|g"
-  -e "s|__DOCKER_VOLUMES_DIR__|${DOCKER_VOLUMES_DIR}|g"
-  -e "s|__JOURNAL_DIR__|${JOURNAL_DIR}|g"
-  -e "s|__WILDFLY_SERVICE__|${WILDFLY_SERVICE}|g"
-  -e "s|__WILDFLY_USER__|${WILDFLY_USER}|g"
-  -e "s|__WILDFLY_CLI__|${WILDFLY_CLI}|g"
-  -e "s|__WILDFLY_LOG_FILE__|${WILDFLY_LOG_FILE}|g"
-  -e "s|__WILDFLY_CONTAINER_SUFFIX__|${WILDFLY_CONTAINER_SUFFIX}|g"
-  -e "s|__REQUIRED_DOCKER_IMAGES__|${REQUIRED_DOCKER_IMAGES}|g"
-  -e "s|__DWH_GITHUB_TAGS_API__|${DWH_GITHUB_TAGS_API}|g"
-  -e "s|__DOCKER_COMPOSE_RELEASE_URL__|${DOCKER_COMPOSE_RELEASE_URL}|g"
-  -e "s|__BIND_ADDR_LOCAL__|${BIND_ADDR_LOCAL}|g"
-  -e "s|__BIND_ADDR_ALL__|${BIND_ADDR_ALL}|g"
-  -e "s|__PORT_UPDATE__|${PORT_UPDATE}|g"
-  -e "s|__PORT_UPDATE_INFO__|${PORT_UPDATE_INFO}|g"
-  -e "s|__PORT_DOCKER_UPDATE__|${PORT_DOCKER_UPDATE}|g"
-  -e "s|__PORT_DOCKER_UPDATE_INFO__|${PORT_DOCKER_UPDATE_INFO}|g"
+# Declare list containing environment variables and insert variables, that
+# cannot be loaded automatically from configuration files
+SED_ARGS=(
+-e "s|__PACKAGE_LIB_DIR__|${PACKAGE_LIB_DIR}|g"
+-e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g"
 )
+
+# Automatically load all variables inside the config files and store them inside the list of environment variables.
+while read -r key; do
+  SED_ARGS+=(-e "s|__${key}__|${!key}|g")
+done < <(grep -ohP '^[A-Za-z_][A-Za-z0-9_]*(?==)' "${DIR_RESOURCES}/config" "${DIR_RESOURCES}/versions")
+readonly SED_ARGS
+
 
 clean_up_build_environment() {
   echo "Cleaning up previous build environment..."
@@ -141,6 +129,7 @@ prepare_management_scripts_and_files() {
 
   # Replace placeholders
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/control" > "${DIR_BUILD}/DEBIAN/control"
+  sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/preinst" > "${DIR_BUILD}/DEBIAN/preinst"
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/postrm" > "${DIR_BUILD}/DEBIAN/postrm"
