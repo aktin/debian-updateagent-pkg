@@ -34,16 +34,22 @@ reload_systemd() {
 
 rm_update_directory() {
   if [[ -d "__AKTIN_UPDATE_DIR__" ]]; then
-    rm -r "__AKTIN_UPDATE_DIR__"
-    log_success "Removed debian update directory at: __AKTIN_UPDATE_DIR__"
+    if rm -r "__AKTIN_UPDATE_DIR__"; then
+      log_success "Removed debian update directory at: __AKTIN_UPDATE_DIR__"
+    else
+      log_warn "Failed to remove debian update directory at: __AKTIN_UPDATE_DIR__"
+    fi
   fi
 }
 
 docker_rm_update_directories() {
   local volumes_basedir="__DOCKER_VOLUMES_DIR__"
   while IFS= read -r -d '' dir; do
-    rm -r "$dir"
-    log_success "removed docker update folder: $dir"
+    if rm -r "$dir"; then
+      log_success "removed docker update folder: $dir"
+    else
+      log_warn "Failed to remove docker update folder: $dir"
+    fi
   done < <(find "$volumes_basedir" -type d -wholename "*_aktin_data/_data/update" -print0)
 }
 
