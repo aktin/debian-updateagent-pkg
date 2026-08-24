@@ -134,8 +134,9 @@ prepare_management_scripts_and_files() {
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
   sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/postrm" > "${DIR_BUILD}/DEBIAN/postrm"
 
-  # Set proper executable permissions
-  chmod 0755 "${DIR_BUILD}/DEBIAN/"*
+  # Ensure correct permissions
+  chmod 0644 "${DIR_BUILD}/DEBIAN/control"  # focus on readability, because "contol" is a metadata package
+  chmod 0755 "${DIR_BUILD}/DEBIAN/preinst" "${DIR_BUILD}/DEBIAN/prerm" "${DIR_BUILD}/DEBIAN/postinst" "${DIR_BUILD}/DEBIAN/postrm"  # focus on execution, this package contains the scripts
 }
 
 build_package() {
