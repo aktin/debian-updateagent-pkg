@@ -24,13 +24,6 @@ function get_latest_j2ee_release() {
   echo "$latest"
 }
 
-# find every running wildfly-1 container
-function docker_get_all_compose_prefixes() {
-  docker ps --format '{{.Names}}' \
-    | grep -- '__WILDFLY_CONTAINER_SUFFIX__$' \
-    | sed 's/__WILDFLY_CONTAINER_SUFFIX__$//'
-}
-
 # Find a docker data warehouse identifier, by matching the requesting client's IP against existing
 # docker container IPs
 function get_compose_prefix_from_ip() {
