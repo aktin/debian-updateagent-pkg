@@ -9,8 +9,16 @@
 
 set -euo pipefail
 
-log() {
+log_info() {
   logger -t "__PACKAGE_NAME__" -p user.info -- "$1" 2>/dev/null || true
+}
+
+log_warn() {
+  logger -t "__PACKAGE_NAME__" -p user.warning -- "$1" 2>/dev/null || true
+}
+
+log_error() {
+  logger -t "__PACKAGE_NAME__" -p user.err -- "$1" 2>/dev/null || true
 }
 
 # Bounded wait for a systemd unit to report active
@@ -48,7 +56,7 @@ mkdir -p "__AKTIN_UPDATE_DIR__"
 if systemctl list-unit-files | grep -q '^__WILDFLY_SERVICE__'; then
   wildfly_installed="true"
 else
-  log "E: wildfly.service is not installed on this host; nothing to update."
+  log_warn "E: wildfly.service is not installed on this host; nothing to update."
 fi
 
 if [[ "$wildfly_installed" == "true" ]]; then
@@ -59,7 +67,7 @@ if [[ "$wildfly_installed" == "true" ]]; then
       if wait_for_active_unit __WILDFLY_SERVICE__ && wait_for_deployment_ok; then
         success="true"
       else
-        log "E: wildfly did not report a healthy deployment within the timeout"
+        log_error "E: wildfly did not report a healthy deployment within the timeout"
       fi
     fi
   fi
@@ -75,5 +83,5 @@ EOF
 
 # ensure wildfly ownership of update directory
 if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
-  log "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
+  log_warn "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
 fi
