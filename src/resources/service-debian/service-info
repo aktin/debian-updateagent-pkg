@@ -34,7 +34,7 @@ ensure_update_dir() {
 
 ensure_update_dir_ownership() {
   if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
-   log_warn "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
+    log_warn "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
   fi
 }
 
