@@ -9,15 +9,10 @@
 
 set -euo pipefail
 
-readonly PACKAGE_NAME="__PACKAGE_NAME__"
 readonly client_ip="${REMOTE_ADDR:-}"
 readonly client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
-
-log() {
-  logger -t "${PACKAGE_NAME}" -p user.info -- "$1" 2>/dev/null || true
-}
 
 # writes a summary file to a docker data warehouse. This file contains package versions, the data warehouse
 # can use to interpret update necessity
