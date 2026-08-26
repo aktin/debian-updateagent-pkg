@@ -3,34 +3,70 @@
 # Script Name:  __PACKAGE_NAME__
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
-# Date:         11 Aug 26
+# Date:         26 Aug 26
 # Purpose:      Service script to handle DWH package updates for debian installations only.
 #--------------------------------------
 
 set -euo pipefail
 
-# Cancel execution if no debian data warehouse exists. Todo: find direct identification method for the requesting client, if it's actually the debian data warehouse and not a data warehouse using the wrong port
-if ! systemctl list-unit-files | grep -q '^__WILDFLY_SERVICE__'; then
-  echo "E: wildfly.service is not installed on this host; nothing to update." >&2
-  exit 1
-fi
+log() {
+  logger -t "__PACKAGE_NAME__" -p user.info -- "$1" 2>/dev/null || true
+}
 
-# Ensure update directory exists
+# Bounded wait for a systemd unit to report active
+wait_for_active_unit() {
+  local unit="$1" timeout="${2:-60}" interval="${3:-2}"
+  local deadline=$((SECONDS + timeout))
+  while (( SECONDS < deadline )); do
+    systemctl is-active --quiet "$unit" && return 0
+    sleep "$interval"
+  done
+  return 1
+}
+
+# Bounded wait for the DWH deployment to report OK via jboss-cli
+wait_for_deployment_ok() {
+  local timeout="${1:-60}" interval="${2:-2}"
+  local deadline=$((SECONDS + timeout))
+  local status
+  while (( SECONDS < deadline )); do
+    status=$(__WILDFLY_CLI__ --connect --command="deployment-info" 2>/dev/null \
+      | awk '/dwh-j2ee-.*\.ear/ {print $NF; exit}') || true
+    [[ "$status" == "OK" ]] && return 0
+    sleep "$interval"
+  done
+  return 1
+}
+
+wildfly_installed="false"
+success="false"
+
+# Ensure update directory exists before anything is written to it, regardless of outcome below
 mkdir -p "__AKTIN_UPDATE_DIR__"
 
-# Perform update and capture result
-if ! { apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install "__DWH_PACKAGE_NAME__" > "__AKTIN_UPDATE_DIR__/log" 2>&1 || echo E: update failed; } | grep -q '^[WE]:'; then
-  # Restart deamon and wildfly if package update left deployments in failed state. Todo: it is dirty to force-reload complete daemon, find cleaner way
-  systemctl daemon-reload
-  systemctl restart __WILDFLY_SERVICE__
-  sleep 30
-  success="true"
+# Find a executable wildfly service, indicating wildfly is installed on the host
+if systemctl list-unit-files | grep -q '^__WILDFLY_SERVICE__'; then
+  wildfly_installed="true"
 else
-  success="false"
+  log "E: wildfly.service is not installed on this host; nothing to update."
 fi
 
-# Mirror the apt-get transcript into the central journal for logging
-logger -t "__PACKAGE_NAME__" -p user.info -f "__AKTIN_UPDATE_DIR__/log" 2>/dev/null || true
+if [[ "$wildfly_installed" == "true" ]]; then
+  # Perform update and capture result
+  if apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install "__DWH_PACKAGE_NAME__" > "__AKTIN_UPDATE_DIR__/log" 2>&1; then
+    # Restart deamon and wildfly in case package update left deployments in failed state.
+    if systemctl daemon-reload && systemctl restart __WILDFLY_SERVICE__; then
+      if wait_for_active_unit __WILDFLY_SERVICE__ && wait_for_deployment_ok; then
+        success="true"
+      else
+        log "E: wildfly did not report a healthy deployment within the timeout"
+      fi
+    fi
+  fi
+
+  # Write apt-get stdout/stderr into journald
+  logger -t "__PACKAGE_NAME__" -p user.info -f "__AKTIN_UPDATE_DIR__/log" 2>/dev/null || true
+fi
 
 cat <<EOF >"__AKTIN_UPDATE_DIR__/result"
 update.success=${success}
@@ -39,5 +75,5 @@ EOF
 
 # ensure wildfly ownership of update directory
 if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
-  echo "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__" >&2
+  log "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
 fi
