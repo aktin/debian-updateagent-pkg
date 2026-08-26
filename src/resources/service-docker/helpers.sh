@@ -14,13 +14,29 @@ log() {
   logger -t "__PACKAGE_NAME__" -p user.info -- "$message" 2>/dev/null || true
 }
 
-# Get version of last released data warehouse, from the AKTIN Github rspository
+# Get version of last released data warehouse, from the AKTIN Github rspository.
+# Per default it excludes rc/beta/alpha/pre/dev tags entirely. If this script is given "false", it includes them,
+# but a full release still ranks above its own
 function get_latest_j2ee_release() {
-  local latest=""
-  latest=$(curl -s __DWH_GITHUB_TAGS_API__ \
-    | grep -oP '"name":\s*"\K[^"]+' \
-    | sort -V \
-    | tail -1) || true
+  local full_release_only="${1:-true}"
+  local tags latest
+
+  tags=$(curl -s __DWH_GITHUB_TAGS_API__ | grep -oP '"name":\s*"\K[^"]+') || true
+
+  # filter only full releases if the tag is set to "true"
+  if [[ "$full_release_only" == "true" ]]; then
+    tags=$(printf '%s\n' "$tags" | grep -P '^v?[0-9]+(\.[0-9]+)*$') || true
+  fi
+
+  # sort tags accounting for full versions before their pre-release versions
+  latest=$(
+    paste \
+      <(printf '%s\n' "$tags" | sed -E 's/[-.]?(rc|beta|alpha|pre|dev)([0-9]*)$/~\1\2/I') \
+      <(printf '%s\n' "$tags") \
+    | sort -t $'\t' -k1,1V \
+    | tail -1 \
+    | cut -f2
+  )
   echo "$latest"
 }
 
