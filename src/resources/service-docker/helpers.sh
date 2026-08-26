@@ -97,21 +97,9 @@ function docker_wait_for_deployment() {
   local timeout_seconds="${2:-300}"
   local check_interval_seconds="${3:-5}"
   local deadline_ts=$((SECONDS + timeout_seconds))
-  local installed=""
-  local deployment_info
 
   while (( SECONDS < deadline_ts )); do
-    if deployment_info=$(sudo docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" 2>/dev/null); then
-      installed=$(
-        awk '/dwh-j2ee-.*\.ear/ {
-          name = $1
-          sub(/^dwh-j2ee-/, "", name)
-          sub(/\.ear$/, "", name)
-          print name
-          exit
-        }' <<< "$deployment_info"
-      )
-
+    if sudo docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" >/dev/null 2>&1; then
       return 0
     fi
 
