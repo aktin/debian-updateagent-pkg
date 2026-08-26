@@ -9,7 +9,9 @@
 
 
 log() {
-  logger -t "${PACKAGE_NAME}" -p user.info -- "$1" 2>/dev/null || true
+  local message="${1:-}"
+  echo "[LOGGING] tenant=${dwh_prefix:-unknown} $message" >&2
+  logger -t "__PACKAGE_NAME__" -p user.info -- "$message" 2>/dev/null || true
 }
 
 # Get version of last released data warehouse, from the AKTIN Github rspository
