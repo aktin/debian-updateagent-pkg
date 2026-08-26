@@ -13,9 +13,7 @@ StartLimitBurst=3
 StartLimitIntervalSec=300
 
 [Service]
-# REMOTE_ADDR/REMOTE_PORT are set by systemd for this Accept=yes socket instance;
-# unset them before running apt to avoid data leakage.
-ExecStart=env -u REMOTE_ADDR -u REMOTE_PORT apt update
+ExecStart=__PACKAGE_NAME__-info
 SyslogIdentifier=__PACKAGE_NAME__
 # Restart on failure but not too frequently
 Restart=on-failure
