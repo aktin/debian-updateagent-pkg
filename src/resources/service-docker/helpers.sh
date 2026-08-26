@@ -39,7 +39,7 @@ function get_compose_prefix_from_ip() {
   )"
 
   if [[ -z "$ip" || -z "$dwh_prefix" ]]; then
-    log "Could not determine Docker Compose project for client IP: ${ip}" >&2
+    log "Could not determine Docker Compose project for client IP: ${ip}"
     exit 1
   fi
 
@@ -48,7 +48,7 @@ function get_compose_prefix_from_ip() {
 
 function docker_ensure_update_dir() {
   local dwh_prefix="$1"
-  update_dir="__DOCKER_VOLUMES_DIR__${dwh_prefix}_aktin_data/_data/update"
+  local update_dir="__DOCKER_VOLUMES_DIR__${dwh_prefix}_aktin_data/_data/update"
   mkdir -p "$update_dir"
   echo "$update_dir"
 }
@@ -56,7 +56,8 @@ function docker_ensure_update_dir() {
 # Find the compose.yml file location for a given container name.
 function docker_get_compose_location_by_container() {
   local container_name="$1"
-  compose_container="$container_name"
+  local compose_container="$container_name"
+  local compose_working_dir compose_config_files compose_dir
   compose_working_dir="$(docker inspect "$compose_container" --format='{{index .Config.Labels "com.docker.compose.project.working_dir"}}')"
   compose_config_files="$(docker inspect "$compose_container" --format='{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
 
@@ -79,6 +80,7 @@ function docker_get_compose_location_by_container() {
 # This function finds the data warehouse version inside a given wildfly container. It uses the jboss CLI inside the container.
 function docker_get_currently_deployed_version() {
   local container_name="$1"
+  local installed
   # "|| true" prevents a no-match grep (deployment not present/ready) from tripping "set -e" via
   # pipefail and aborting the whole script; an empty result is a valid, callers-handle-it outcome.
   installed=$(sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
@@ -91,11 +93,12 @@ function docker_get_currently_deployed_version() {
 # Wait until JBoss is reachable and finds a deployment. Does not check deployment status, only if the deployment exists.
 # returns: 0 if deployment was found, non-zero if timeout was reached.
 function docker_wait_for_deployment() {
-  wildfly_container="$1"
-  timeout_seconds="${2:-300}"
-  check_interval_seconds="${3:-5}"
-  deadline_ts=$((SECONDS + timeout_seconds))
-  installed=""
+  local wildfly_container="$1"
+  local timeout_seconds="${2:-300}"
+  local check_interval_seconds="${3:-5}"
+  local deadline_ts=$((SECONDS + timeout_seconds))
+  local installed=""
+  local deployment_info
 
   while (( SECONDS < deadline_ts )); do
     if deployment_info=$(sudo docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" 2>/dev/null); then
@@ -132,8 +135,9 @@ function docker_get_deployment_status() {
 # Validate if data warehouse is deployed correctly and matches the deployed version against the latest candidate version.
 # returns: true if matching, false if not
 function docker_post_update_validation() {
-  wildfly_container="$1"
-  success="false"
+  local wildfly_container="$1"
+  local success="false"
+  local installed status candidate
 
   if docker_wait_for_deployment "$wildfly_container"; then
     installed="$(docker_get_currently_deployed_version $wildfly_container)"
