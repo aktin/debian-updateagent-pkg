@@ -17,6 +17,3 @@ StartLimitIntervalSec=300
 ExecStart=__PACKAGE_NAME__-docker-info
 SyslogIdentifier=__PACKAGE_NAME__
 Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
