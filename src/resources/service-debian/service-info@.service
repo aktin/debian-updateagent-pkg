@@ -19,6 +19,3 @@ ExecStart=env -u REMOTE_ADDR -u REMOTE_PORT apt update
 SyslogIdentifier=__PACKAGE_NAME__
 # Restart on failure but not too frequently
 Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
