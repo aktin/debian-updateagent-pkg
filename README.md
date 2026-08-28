@@ -60,7 +60,7 @@ is not handled by this helper — each service script `chown`s its own update di
 ## Configuration
 All configuration for this package — filesystem paths, socket ports, service/user names,
 external URLs — lives in two files under `src/resources/`: `versions` (the package version) and
-`config` (everything else). Nothing else in the repo should contain a hard-coded path, port, or
+`template_vars` (everything else). Nothing else in the repo should contain a hard-coded path, port, or
 URL; templates reference these values via `__PLACEHOLDER__` tokens that `build.sh` substitutes at
 build time.
 

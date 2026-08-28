@@ -54,7 +54,7 @@ readonly DIR_RESOURCES="${DIR_SRC}/resources"
 
 # Load package configuration and version-specific variables from file
 set -a
-. "${DIR_RESOURCES}/config"
+. "${DIR_RESOURCES}/template_vars"
 . "${DIR_RESOURCES}/versions"
 set +a
 readonly PACKAGE_LIB_DIR="/usr/lib/${PACKAGE_NAME}"
@@ -71,7 +71,7 @@ SED_ARGS=(
 # Automatically load all variables inside the config files and store them inside the list of environment variables.
 while read -r key; do
   SED_ARGS+=(-e "s|__${key}__|${!key}|g")
-done < <(grep -ohP '^[A-Za-z_][A-Za-z0-9_]*(?==)' "${DIR_RESOURCES}/config" "${DIR_RESOURCES}/versions")
+done < <(grep -ohP '^[A-Za-z_][A-Za-z0-9_]*(?==)' "${DIR_RESOURCES}/template_vars" "${DIR_RESOURCES}/versions")
 readonly SED_ARGS
 
 
