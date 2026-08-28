@@ -24,6 +24,11 @@ write_tenant_info() {
   local wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
   local update_dir installed
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
+
+  # wait for wildfly to fully start, else version info will be empty in info file
+  if ! docker_wait_for_deployment "$wildfly_container" 10 2; then
+    log_docker_warn "WildFly deployment not ready for tenant $dwh_prefix; version.installed will be blank"
+  fi
   installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
   cat <<EOF > "$update_dir/info"

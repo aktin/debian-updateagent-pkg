@@ -2,7 +2,7 @@
 # Unit Name:    __PACKAGE_NAME__-docker-info@.service
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         07 Apr 26
+# Date:         28 Apr 26
 # Purpose:      Service unit for Docker update info checks
 # ----------------------------------------------
 
@@ -16,4 +16,3 @@ StartLimitIntervalSec=300
 [Service]
 ExecStart=__PACKAGE_NAME__-docker-info
 SyslogIdentifier=__PACKAGE_NAME__
-Restart=on-failure
