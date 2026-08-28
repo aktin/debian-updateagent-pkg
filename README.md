@@ -82,7 +82,9 @@ afterwards.
 - `info`: Current and candidate version information
 - `log`: Update execution logs
 - `result`: Update execution results with success status (reflects the original update attempt,
-  not whether an automatic rollback below succeeded)
+  not whether an automatic rollback below succeeded). Docker's `result` additionally includes
+  `update.error`, empty on success and set to a short stage name (e.g. `fetch_compose`,
+  `compose_up`, `post_update_validation`) identifying which step failed otherwise
 - `server.log` (Docker only): Backup of the container's WildFly log taken immediately before the update
 
 Before touching anything, the Docker update also backs up the current `compose.yml` into a
