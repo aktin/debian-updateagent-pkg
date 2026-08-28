@@ -24,7 +24,7 @@ exec > >(tee -a "$update_dir/log") 2>&1   # save update log to the container, ad
 compose_dir="$(docker_get_compose_location_by_container $wildfly_container)"
 
 # persist latest wildfly log on host
-sudo docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir"
+docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir"
 
 # --------- Main update process----------------------------
 log "Starting Docker update process"
@@ -34,9 +34,9 @@ mkdir -p backup
 cp compose.yml backup/compose.yml
 
 curl -fLO __DOCKER_COMPOSE_RELEASE_URL__ || { log "Failed to fetch new compose file, aborting update process"; exit 1; }
-sudo docker compose down
-sudo docker compose pull
-sudo docker compose up -d
+docker compose down
+docker compose pull
+docker compose up -d
 successful="$(docker_post_update_validation $wildfly_container)"
 
 # reload old data warehouse on un-successful update
@@ -44,7 +44,7 @@ if [[ "$successful" == "false" ]]; then
   log "starting docker was not sucessful, restoring old configuration"
   cd "$compose_dir"
   cp backup/compose.yml compose.yml
-  sudo docker compose up -d
+  docker compose up -d
   successful_backup="$(docker_post_update_validation $wildfly_container)"
   log "Status of data warehouse restoring: $successful_backup"
 else
@@ -61,5 +61,5 @@ EOF
 
 # --------- CLEANUP ----------------------------
 # copy old update log into new container
-sudo docker cp "$update_dir/server.log" "${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__":__WILDFLY_LOG_FILE__.1
+docker cp "$update_dir/server.log" "${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__":__WILDFLY_LOG_FILE__.1
 

@@ -99,7 +99,7 @@ function docker_get_currently_deployed_version() {
   local installed
   # "|| true" prevents a no-match grep (deployment not present/ready) from tripping "set -e" via
   # pipefail and aborting the whole script; an empty result is a valid, callers-handle-it outcome.
-  installed=$(sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
+  installed=$(docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
     | awk '{print $1}' \
     | sed 's/dwh-j2ee-\(.*\)\.ear/\1/') || true
@@ -115,7 +115,7 @@ function docker_wait_for_deployment() {
   local deadline_ts=$((SECONDS + timeout_seconds))
 
   while (( SECONDS < deadline_ts )); do
-    if sudo docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" >/dev/null 2>&1; then
+    if docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" >/dev/null 2>&1; then
       return 0
     fi
 
@@ -130,7 +130,7 @@ function docker_wait_for_deployment() {
 # Use JBoss CLI inside wildfly container to obtain data warehouse deployment status
 function docker_get_deployment_status() {
   local container_name="$1"
-  sudo docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
+  docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
     | awk '{print $NF}' || true
 }
