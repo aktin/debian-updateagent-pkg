@@ -56,7 +56,7 @@ function get_compose_prefix_from_ip() {
 
   if [[ -z "$ip" || -z "$dwh_prefix" ]]; then
     log "Could not determine Docker Compose project for client IP: ${ip}"
-    exit 1
+    return 1
   fi
 
   echo "$dwh_prefix"
@@ -83,12 +83,12 @@ function docker_get_compose_location_by_container() {
     compose_dir="$(dirname "${compose_config_files%%,*}")"
   else
     log "Could not determine Docker Compose directory for container: ${compose_container}"
-    exit 1
+    return 1
   fi
 
   if [[ ! -d "$compose_dir" ]]; then
     log "Docker Compose directory does not exist: ${compose_dir}"
-    exit 1
+    return 1
   fi
   echo "$compose_dir"
 }
