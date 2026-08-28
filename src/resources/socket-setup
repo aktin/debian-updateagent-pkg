@@ -21,13 +21,26 @@ source "__PACKAGE_LIB_DIR__/helpers.sh"
 
 # enable and start update-agent sockets on the host
 setup_socket_services() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    log_native_warn "systemctl is not available; skipping socket setup"
+    return
+  fi
+
   log_native_info "Enabling and starting socket services..."
-  systemctl daemon-reload
+  if ! systemctl daemon-reload; then
+    log_native_warn "Failed to reload systemd daemon"
+  fi
   log_native_info "daemon reloaded"
-  systemctl enable "${SOCKET_UNITS[@]}"
+
+  if ! systemctl enable "${SOCKET_UNITS[@]}"; then
+    log_native_warn "Failed to enable one or more socket services"
+  fi
   log_native_info "${SOCKET_UNITS[@]}"
   log_native_info "sockets enabled"
-  systemctl start "${SOCKET_UNITS[@]}"
+
+  if ! systemctl start "${SOCKET_UNITS[@]}"; then
+    log_native_warn "Failed to start one or more socket services"
+  fi
   log_native_info "Socket services initialized"
 }
 
