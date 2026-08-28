@@ -16,4 +16,3 @@ StartLimitIntervalSec=300
 [Service]
 ExecStart=__PACKAGE_NAME__-docker
 SyslogIdentifier=__PACKAGE_NAME__
-Restart=on-failure
