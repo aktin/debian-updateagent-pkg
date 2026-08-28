@@ -26,7 +26,6 @@ write_tenant_info() {
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
   installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
-  log "Save tenant info summary to update directory"
   cat <<EOF > "$update_dir/info"
 version.installed=${installed}
 version.candidate=${latest}
@@ -36,6 +35,7 @@ request.client_ip=${client_ip}
 request.client_port=${client_port}
 request.client_prefix=${dwh_prefix}
 EOF
+  log "Saved tenant info summary to update directory"
 }
 
 
