@@ -15,7 +15,7 @@ client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
-log "Start updating Docker DWH"
+log_docker_info "Start updating Docker DWH"
 
 # --------- Pre-update preparation ----------------------------
 # no update_dir can exist until a tenant is identified, so there is nothing
@@ -23,7 +23,7 @@ log "Start updating Docker DWH"
 # with an invalid path.
 dwh_prefix="$(get_compose_prefix_from_ip "$client_ip")" || dwh_prefix=""  # get dwh prefix or store empty value if any error occured
 if [[ -z "$dwh_prefix" ]]; then
-  log "no data warehouse matched client ip '$client_ip'"
+  log_docker_warn "no data warehouse matched client ip '$client_ip'"
   exit 0
 fi
 
@@ -32,7 +32,7 @@ update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
 exec > >(tee -a "$update_dir/log") 2>&1   # save update log to the container, additionally to journal (main log location)
 
 # --------- Main update process----------------------------
-log "Starting Docker update process"
+log_docker_info "Starting Docker update process"
 
 # defaults for every field written into the result file below: if a stage
 # fails or is skipped, these stay at a value that makes that visible instead
@@ -42,7 +42,7 @@ error_stage=""
 
 if compose_dir="$(docker_get_compose_location_by_container "$wildfly_container")"; then
   # persist latest wildfly log on host, best effort
-  docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir" || log "Failed to copy wildfly log to $update_dir"
+  docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir" || log_docker_warn "Failed to copy wildfly log to $update_dir"
 
   # backup old compose
   cd "$compose_dir"
@@ -52,32 +52,32 @@ if compose_dir="$(docker_get_compose_location_by_container "$wildfly_container")
         successful="$(docker_post_update_validation "$wildfly_container")"
         [[ "$successful" == "false" ]] && error_stage="post_update_validation"
       else
-        log "docker compose down/pull/up failed"
+        log_docker_error "docker compose down/pull/up failed"
         error_stage="compose_up"
       fi
     else
-      log "Failed to fetch new compose file, aborting update process"
+      log_docker_error "Failed to fetch new compose file, aborting update process"
       error_stage="fetch_compose"
     fi
 
     # reload old data warehouse on un-successful update
     if [[ "$successful" == "false" ]]; then
-      log "starting docker was not sucessful, restoring old configuration"
+      log_docker_warn "starting docker was not sucessful, restoring old configuration"
       cd "$compose_dir"
       cp backup/compose.yml compose.yml
-      docker compose up -d || log "Failed to restore previous docker compose configuration"
+      docker compose up -d || log_docker_error "Failed to restore previous docker compose configuration"
       successful_backup="$(docker_post_update_validation "$wildfly_container")"
-      log "Status of data warehouse restoring: $successful_backup"
+      log_docker_info "Status of data warehouse restoring: $successful_backup"
     else
       cd "$compose_dir"
       rm -r backup
     fi
   else
-    log "Failed to back up existing compose configuration, aborting update process"
+    log_docker_error "Failed to back up existing compose configuration, aborting update process"
     error_stage="backup"
   fi
 else
-  log "Could not determine Docker Compose directory, aborting update process"
+  log_docker_error "Could not determine Docker Compose directory, aborting update process"
   error_stage="compose_dir_lookup"
 fi
 
@@ -91,4 +91,4 @@ EOF
 
 # --------- CLEANUP ----------------------------
 # copy old update log into new container, best effort
-docker cp "$update_dir/server.log" "$wildfly_container":__WILDFLY_LOG_FILE__.1 || log "Failed to copy update log into new container"
+docker cp "$update_dir/server.log" "$wildfly_container":__WILDFLY_LOG_FILE__.1 || log_docker_warn "Failed to copy update log into new container"

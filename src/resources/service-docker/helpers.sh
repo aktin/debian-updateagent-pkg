@@ -8,10 +8,39 @@
 #--------------------------------------
 
 
-log() {
+# Native loggers: for host-level executions (debian-native DWH updates, socket-setup) with no
+# per-tenant context. Journal-only, no stdout/stderr echo - these scripts don't tee their output
+# into a per-run log file, so an echo here would only duplicate what systemd already journals.
+log_native_info() {
+  logger -t "__PACKAGE_NAME__" -p user.info -- "${1:-}" 2>/dev/null || true
+}
+
+log_native_warn() {
+  logger -t "__PACKAGE_NAME__" -p user.warning -- "${1:-}" 2>/dev/null || true
+}
+
+log_native_error() {
+  logger -t "__PACKAGE_NAME__" -p user.err -- "${1:-}" 2>/dev/null || true
+}
+
+# Docker loggers: tag every line with the tenant (dwh_prefix) they concern, and additionally echo
+# to stderr since the docker service scripts tee their own output into a per-tenant log file.
+log_docker_info() {
   local message="${1:-}"
-  echo "[LOGGING] tenant=${dwh_prefix:-unknown} $message" >&2
+  echo "[INFO] tenant=${dwh_prefix:-unknown} $message" >&2
   logger -t "__PACKAGE_NAME__" -p user.info -- "$message" 2>/dev/null || true
+}
+
+log_docker_warn() {
+  local message="${1:-}"
+  echo "[WARN] tenant=${dwh_prefix:-unknown} $message" >&2
+  logger -t "__PACKAGE_NAME__" -p user.warning -- "$message" 2>/dev/null || true
+}
+
+log_docker_error() {
+  local message="${1:-}"
+  echo "[ERROR] tenant=${dwh_prefix:-unknown} $message" >&2
+  logger -t "__PACKAGE_NAME__" -p user.err -- "$message" 2>/dev/null || true
 }
 
 # Get version of last released data warehouse, from the AKTIN Github rspository.
@@ -55,7 +84,7 @@ function get_compose_prefix_from_ip() {
   )"
 
   if [[ -z "$ip" || -z "$dwh_prefix" ]]; then
-    log "Could not determine Docker Compose project for client IP: ${ip}"
+    log_docker_warn "Could not determine Docker Compose project for client IP: ${ip}"
     return 1
   fi
 
@@ -82,12 +111,12 @@ function docker_get_compose_location_by_container() {
   elif [[ -n "$compose_config_files" ]]; then
     compose_dir="$(dirname "${compose_config_files%%,*}")"
   else
-    log "Could not determine Docker Compose directory for container: ${compose_container}"
+    log_docker_warn "Could not determine Docker Compose directory for container: ${compose_container}"
     return 1
   fi
 
   if [[ ! -d "$compose_dir" ]]; then
-    log "Docker Compose directory does not exist: ${compose_dir}"
+    log_docker_warn "Docker Compose directory does not exist: ${compose_dir}"
     return 1
   fi
   echo "$compose_dir"
@@ -119,11 +148,11 @@ function docker_wait_for_deployment() {
       return 0
     fi
 
-    log "WildFly deployment not ready yet, waiting ${check_interval_seconds}s"
+    log_docker_info "WildFly deployment not ready yet, waiting ${check_interval_seconds}s"
     sleep "$check_interval_seconds"
   done
 
-  log "WildFly deployment was not available after ${timeout_seconds}s"
+  log_docker_warn "WildFly deployment was not available after ${timeout_seconds}s"
   return 1
 }
 
@@ -146,18 +175,18 @@ function docker_post_update_validation() {
   if docker_wait_for_deployment "$wildfly_container"; then
     installed="$(docker_get_currently_deployed_version $wildfly_container)"
     installed="v$installed" # because of git tagging rules adding v before version
-    log "Got installed version $installed"
+    log_docker_info "Got installed version $installed"
 
     status="$(docker_get_deployment_status $wildfly_container)"
-    log "Got deployment status $status"
+    log_docker_info "Got deployment status $status"
 
     candidate="$(get_latest_j2ee_release)"
-    log "Got target candidate $candidate"
+    log_docker_info "Got target candidate $candidate"
 
     if [[ "$installed" == "$candidate" && "$status" == "OK" ]]; then
       success="true"
     fi
-    log "==> Update finished, installed: $installed (status: $status), candidate was $candidate. Update successful: $success"
+    log_docker_info "==> Update finished, installed: $installed (status: $status), candidate was $candidate. Update successful: $success"
   fi
   echo "$success"
 }

@@ -19,7 +19,7 @@ source "__PACKAGE_LIB_DIR__/helpers.sh"
 write_tenant_info() {
   local dwh_prefix="$1"
   local latest="$2"
-  log "Collecting tenant info for $dwh_prefix"
+  log_docker_info "Collecting tenant info for $dwh_prefix"
 
   local wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
   local update_dir installed
@@ -35,14 +35,14 @@ request.client_ip=${client_ip}
 request.client_port=${client_port}
 request.client_prefix=${dwh_prefix}
 EOF
-  log "Saved tenant info summary to update directory"
+  log_docker_info "Saved tenant info summary to update directory"
 }
 
 
-log "A client has triggered update info socket for docker data warehouses"
+log_docker_info "A client has triggered update info socket for docker data warehouses"
 # verify docker exists on host
 if ! command -v docker >/dev/null 2>&1; then
-  log "docker is not available on this host; nothing to report on"
+  log_docker_info "docker is not available on this host; nothing to report on"
   exit 0
 fi
 
