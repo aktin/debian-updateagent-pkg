@@ -135,6 +135,14 @@ function docker_get_currently_deployed_version() {
   echo "$installed"
 }
 
+function docker_is_wildfly_deployed() {
+  local wildfly_container="$1"
+  if docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
 # Wait until JBoss is reachable and finds a deployment. Does not check deployment status, only if the deployment exists.
 # returns: 0 if deployment was found, non-zero if timeout was reached.
 function docker_wait_for_deployment() {
@@ -144,10 +152,9 @@ function docker_wait_for_deployment() {
   local deadline_ts=$((SECONDS + timeout_seconds))
 
   while (( SECONDS < deadline_ts )); do
-    if docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" >/dev/null 2>&1; then
+    if docker_is_wildfly_deployed "$wildfly_container"; then
       return 0
     fi
-
     log_docker_info "WildFly deployment not ready yet, waiting ${check_interval_seconds}s"
     sleep "$check_interval_seconds"
   done
