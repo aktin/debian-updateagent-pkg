@@ -3,7 +3,7 @@
 # Script Name:  __PACKAGE_NAME__-info
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
-# Date:         13 Aug 26
+# Date:         31 Aug 26
 # Purpose:      Service script to collect DWH package version information
 #--------------------------------------
 
@@ -40,6 +40,8 @@ installed=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*In
 candidate=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Candidate:\s*(.*)$/\1/p')
 
 # Write version info
+# remove old version info file, directly before writing it again to reduce downtime
+rm "__AKTIN_UPDATE_DIR__/info" || log_native_info "No previous update info file found at __AKTIN_UPDATE_DIR__/info. No removal required."
 write_file_atomically "__AKTIN_UPDATE_DIR__/info" <<EOF
 version.installed=${installed}
 version.candidate=${candidate}

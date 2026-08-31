@@ -3,7 +3,7 @@
 # Script Name:  __PACKAGE_NAME__-docker-info
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         13 Aug 26
+# Date:         31 Aug 26
 # Purpose:      Service script to collect DWH package version information for docker DWHs
 #--------------------------------------
 
@@ -33,7 +33,7 @@ write_tenant_info() {
     installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
     # remove old info file, directly before writing it again to reduce downtime
-    rm "$update_filepath" || log_docker_info "No previous update info file found at $update_filepath. No deleting required."
+    rm "$update_filepath" || log_docker_info "No previous update info file found at $update_filepath. No removal required."
     write_file_atomically "$update_filepath" <<EOF
 version.installed=${installed}
 version.candidate=${latest}

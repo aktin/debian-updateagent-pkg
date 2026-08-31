@@ -3,7 +3,7 @@
 # Script Name:  helpers.sh
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         13 Aug 26
+# Date:         31 Aug 26
 # Purpose:      Library for general helper functions 
 #--------------------------------------
 
@@ -44,10 +44,7 @@ log_docker_error() {
 }
 
 # Write stdin to a file atomically: fill a temp file in the same directory, fix its
-# permissions, then rename it over the target. A reader polling the destination therefore
-# never observes a truncated or half-written file - it sees either the previous contents
-# or the complete new ones. The temp file lives in the destination's own directory so the
-# final rename stays on one filesystem (and is thus atomic).
+# permissions, then rename it over the target.
 write_file_atomically() {
   local dest="$1"
   local tmp
