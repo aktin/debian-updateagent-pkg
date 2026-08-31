@@ -23,24 +23,23 @@ log_native_error() {
   logger -t "__PACKAGE_NAME__" -p user.err -- "${1:-}" 2>/dev/null || true
 }
 
-# Docker loggers: tag every line with the tenant (dwh_prefix) they concern, and additionally echo
-# to stderr since the docker service scripts tee their own output into a per-tenant log file.
+# Docker loggers: tag every line with the tenant (dwh_prefix) they concern and write it to stderr
+# only. systemd captures the service's stderr into the journal, and the docker service scripts tee
+# the same stream into a per-tenant log file - so a separate `logger` call would just double every
+# line in the journal. All lines are journaled at the service's default priority.
 log_docker_info() {
   local message="${1:-}"
   echo "[INFO] tenant=${dwh_prefix:-unknown} $message" >&2
-  logger -t "__PACKAGE_NAME__" -p user.info -- "$message" 2>/dev/null || true
 }
 
 log_docker_warn() {
   local message="${1:-}"
   echo "[WARN] tenant=${dwh_prefix:-unknown} $message" >&2
-  logger -t "__PACKAGE_NAME__" -p user.warning -- "$message" 2>/dev/null || true
 }
 
 log_docker_error() {
   local message="${1:-}"
   echo "[ERROR] tenant=${dwh_prefix:-unknown} $message" >&2
-  logger -t "__PACKAGE_NAME__" -p user.err -- "$message" 2>/dev/null || true
 }
 
 # Write stdin to a file atomically: fill a temp file in the same directory, fix its

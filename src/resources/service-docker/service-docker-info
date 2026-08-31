@@ -26,14 +26,15 @@ write_tenant_info() {
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
   update_filepath="$update_dir/info"
 
+  # always remove old info file to avoid misconceptions
+  rm "$update_filepath" || log_docker_info "No previous update info file found at $update_filepath. No removal required."
+
   # only write update-info file if wildfly is deployed
   if ! docker_is_wildfly_deployed "$wildfly_container"; then
     log_docker_warn "Wildfly not started yet. Attempt to run update-info later to create the info file."
   else
     installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
-    # remove old info file, directly before writing it again to reduce downtime
-    rm "$update_filepath" || log_docker_info "No previous update info file found at $update_filepath. No removal required."
     write_file_atomically "$update_filepath" <<EOF
 version.installed=${installed}
 version.candidate=${latest}
