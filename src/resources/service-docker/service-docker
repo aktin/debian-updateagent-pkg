@@ -81,7 +81,7 @@ else
   error_stage="compose_dir_lookup"
 fi
 
-cat <<EOF >"$update_dir/result"
+write_file_atomically "$update_dir/result" <<EOF
 update.success=${successful}
 update.error=${error_stage}
 update.time=$(date)

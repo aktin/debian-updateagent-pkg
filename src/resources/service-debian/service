@@ -66,7 +66,7 @@ if [[ "$wildfly_installed" == "true" ]]; then
   logger -t "__PACKAGE_NAME__" -p user.info -f "__AKTIN_UPDATE_DIR__/log" 2>/dev/null || true
 fi
 
-cat <<EOF >"__AKTIN_UPDATE_DIR__/result"
+write_file_atomically "__AKTIN_UPDATE_DIR__/result" <<EOF
 update.success=${success}
 update.time=$(date)
 EOF

@@ -40,7 +40,7 @@ installed=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*In
 candidate=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Candidate:\s*(.*)$/\1/p')
 
 # Write version info
-cat <<EOF >"__AKTIN_UPDATE_DIR__/info"
+write_file_atomically "__AKTIN_UPDATE_DIR__/info" <<EOF
 version.installed=${installed}
 version.candidate=${candidate}
 version.time=$(date)
