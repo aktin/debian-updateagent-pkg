@@ -22,12 +22,11 @@ write_tenant_info() {
   log_docker_info "Collecting tenant info for $dwh_prefix"
 
   local wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
-  local update_dir installed update_filepath
+  local update_dir installed
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
-  update_filepath="$update_dir/info"
 
   # always remove old info file to avoid misconceptions
-  rm "$update_filepath" || log_docker_info "No previous update info file found at $update_filepath. No removal required."
+  rm_info_docker "$update_dir"
 
   # only write update-info file if wildfly is deployed
   if ! docker_is_wildfly_deployed "$wildfly_container"; then
@@ -35,7 +34,7 @@ write_tenant_info() {
   else
     installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
-    write_file_atomically "$update_filepath" <<EOF
+    write_file_atomically "$update_dir/info" <<EOF
 version.installed=${installed}
 version.candidate=${latest}
 version.time=$(date)
