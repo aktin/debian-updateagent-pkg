@@ -26,7 +26,7 @@ write_tenant_info() {
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
 
   # always remove old info file to avoid misconceptions
-  rm_info_docker "$update_dir"
+  rm_info_docker "$update_dir/info"
 
   # only write update-info file if wildfly is deployed
   if ! docker_is_wildfly_deployed "$wildfly_container"; then
