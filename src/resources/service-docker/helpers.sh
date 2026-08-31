@@ -43,6 +43,23 @@ log_docker_error() {
   logger -t "__PACKAGE_NAME__" -p user.err -- "$message" 2>/dev/null || true
 }
 
+# Write stdin to a file atomically: fill a temp file in the same directory, fix its
+# permissions, then rename it over the target. A reader polling the destination therefore
+# never observes a truncated or half-written file - it sees either the previous contents
+# or the complete new ones. The temp file lives in the destination's own directory so the
+# final rename stays on one filesystem (and is thus atomic).
+write_file_atomically() {
+  local dest="$1"
+  local tmp
+  tmp="$(mktemp "${dest}.XXXXXX")" || return 1
+  if cat >"$tmp" && chmod 0644 "$tmp"; then
+    mv -f "$tmp" "$dest"
+  else
+    rm -f "$tmp"
+    return 1
+  fi
+}
+
 # Get version of last released data warehouse, from the AKTIN Github rspository.
 # Per default it excludes rc/beta/alpha/pre/dev tags entirely. If this script is given "false", it includes them,
 # but a full release still ranks above its own

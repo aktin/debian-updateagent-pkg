@@ -31,7 +31,7 @@ write_tenant_info() {
   fi
   installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
-  cat <<EOF > "$update_dir/info"
+  write_file_atomically "$update_dir/info" <<EOF
 version.installed=${installed}
 version.candidate=${latest}
 version.time=$(date)
