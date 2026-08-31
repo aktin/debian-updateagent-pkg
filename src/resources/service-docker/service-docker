@@ -93,4 +93,4 @@ EOF
 # copy old update log into new container, best effort
 docker cp "$update_dir/server.log" "$wildfly_container":__WILDFLY_LOG_FILE__.1 || log_docker_warn "Failed to copy update log into new container"
 # remove old update version info
-rm "$update_dir/info" || log_docker_info "No old update info file found during docker update. No removal required."
+rm_info_docker "$update_dir"

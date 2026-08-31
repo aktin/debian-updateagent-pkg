@@ -40,8 +40,7 @@ installed=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*In
 candidate=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Candidate:\s*(.*)$/\1/p')
 
 # Write version info
-# remove old version info file, directly before writing it again to reduce downtime
-rm "__AKTIN_UPDATE_DIR__/info" || log_native_info "No previous update info file found at __AKTIN_UPDATE_DIR__/info. No removal required."
+rm_info_native  # remove version info file
 write_file_atomically "__AKTIN_UPDATE_DIR__/info" <<EOF
 version.installed=${installed}
 version.candidate=${candidate}

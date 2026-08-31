@@ -77,5 +77,4 @@ if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
 fi
 
 # Cleanup
-# remove old version info file, directly before writing it again to reduce downtime
-rm "__AKTIN_UPDATE_DIR__/info" || log_native_info "No previous update info file found at __AKTIN_UPDATE_DIR__/info. No removal required."
+rm_info_native  # remove version info file
