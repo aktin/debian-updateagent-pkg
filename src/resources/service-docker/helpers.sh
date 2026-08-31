@@ -215,11 +215,18 @@ function docker_post_update_validation() {
 rm_info_native() {
   local info_path="__AKTIN_UPDATE_DIR__/info"
 
+  # remove file and log error if one occured
   if [[ -f "$info_path" ]]; then
     log_native_info "Found old version info file. Attempting to remove..."
     error_msg="$(rm "$info_path" 2>&1 >/dev/null)" || true
     [[ -n "$error_msg" ]] && log_native_error "$error_msg"  # log rm error message if not empty
-    [[ -f "$info_path" ]] && log_native_error "Version info file could not be removed."  # log confirmation the file does still exist
+  fi
+
+  # sanity check
+  if [[ -f "$info_path" ]]; then
+    log_native_error "Version info file could not be removed."
+  else
+    log_native_info "Ensured version info file has been removed."
   fi
 }
 
@@ -227,10 +234,17 @@ rm_info_native() {
 rm_info_docker() {
   local info_path="$1"
 
+  # remove file and log error if one occured
   if [[ -f "$info_path" ]]; then
     log_docker_info "Found old version info file. Attempting to remove..."
     error_msg="$(rm "$info_path" 2>&1 >/dev/null)" || true
     [[ -n "$error_msg" ]] && log_docker_error "$error_msg"  # log rm error message if not empty
-    [[ -f "$info_path" ]] && log_docker_error "Version info file could not be removed."  # log confirmation the file does still exist
+  fi
+
+  # sanity check
+  if [[ -f "$info_path" ]]; then
+    log_docker_error "Version info file could not be removed."
+  else
+    log_docker_info "Ensured version info file has been removed."
   fi
 }
