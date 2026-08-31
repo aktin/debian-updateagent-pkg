@@ -3,7 +3,7 @@
 # Script Name:  __PACKAGE_NAME__
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
-# Date:         26 Aug 26
+# Date:         31 Aug 26
 # Purpose:      Service script to handle DWH package updates for debian installations only.
 #--------------------------------------
 
@@ -75,3 +75,7 @@ EOF
 if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
   log_native_warn "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
 fi
+
+# Cleanup
+# remove old version info file, directly before writing it again to reduce downtime
+rm "__AKTIN_UPDATE_DIR__/info" || log_native_info "No previous update info file found at __AKTIN_UPDATE_DIR__/info. No removal required."
