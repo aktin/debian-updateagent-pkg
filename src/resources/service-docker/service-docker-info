@@ -22,16 +22,19 @@ write_tenant_info() {
   log_docker_info "Collecting tenant info for $dwh_prefix"
 
   local wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
-  local update_dir installed
+  local update_dir installed update_filepath
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
+  update_filepath="$update_dir/info"
 
-  # wait for wildfly to fully start, else version info will be empty in info file
-  if docker_is_wildfly_deployed "$wildfly_container"; then
-    log_docker_warn "Wildfly not started yet, leaving installed version empty"
-  fi
-  installed="$(docker_get_currently_deployed_version "$wildfly_container")"
+  # only write update-info file if wildfly is deployed
+  if ! docker_is_wildfly_deployed "$wildfly_container"; then
+    log_docker_warn "Wildfly not started yet. Attempt to run update-info later to create the info file."
+  else
+    installed="$(docker_get_currently_deployed_version "$wildfly_container")"
 
-  write_file_atomically "$update_dir/info" <<EOF
+    # remove old info file, directly before writing it again to reduce downtime
+    rm "$update_filepath" || log_docker_info "No previous update info file found at $update_filepath. No deleting required."
+    write_file_atomically "$update_filepath" <<EOF
 version.installed=${installed}
 version.candidate=${latest}
 version.time=$(date)
@@ -40,7 +43,8 @@ request.client_ip=${client_ip}
 request.client_port=${client_port}
 request.client_prefix=${dwh_prefix}
 EOF
-  log_docker_info "Saved tenant info summary to update directory"
+    log_docker_info "Saved tenant info summary to update directory"
+  fi
 }
 
 
