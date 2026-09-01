@@ -15,8 +15,7 @@ readonly client_port="${REMOTE_PORT:-}"
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
 # Prevent concurrent copies of this script for the same client. Use lockfile.
-readonly lockfile="__AKTIN_UPDATE_DIR__/${client_ip//./_}-docker-info.lock"
-mkdir -p "__AKTIN_UPDATE_DIR__"
+readonly lockfile="/tmp/${client_ip//./_}-docker-info.lock"
 exec 9>"$lockfile"
 if ! flock -n 9; then
   log_docker_warn "docker-info already running for ${client_ip:-unknown}, skipping duplicate request"
@@ -35,6 +34,8 @@ write_tenant_info() {
   local update_dir installed
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
 
+  # create lockfile for client to know, info fetching is still in progress
+  echo "" > "$update_dir/info.lock"
   # always remove old info file to avoid misconceptions
   rm_info_docker "$update_dir/info"
 
@@ -55,6 +56,8 @@ request.client_prefix=${dwh_prefix}
 EOF
     log_docker_info "Saved tenant info summary to update directory"
   fi
+
+  rm_file_docker "$update_dir/info.lock"
 }
 
 
@@ -62,9 +65,9 @@ log_docker_info "A client has triggered update info socket for docker data wareh
 # verify docker exists on host
 if ! command -v docker >/dev/null 2>&1; then
   log_docker_info "docker is not available on this host; nothing to report on"
-  exit 0
+else
+  latest="$(get_latest_j2ee_release)"
+  dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
+  write_tenant_info "$dwh_prefix" "$latest"
 fi
 
-latest="$(get_latest_j2ee_release)"
-dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
-write_tenant_info "$dwh_prefix" "$latest"
