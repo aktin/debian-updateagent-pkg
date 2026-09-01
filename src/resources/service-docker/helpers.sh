@@ -248,3 +248,21 @@ rm_info_docker() {
     log_docker_info "Ensured version info file has been removed."
   fi
 }
+
+rm_file_docker() {
+  local target="$1"
+
+  # remove file and log error if one occured
+  if [[ -f "$target" ]]; then
+    log_docker_info "Found removal target $target"
+    error_msg="$(rm "$target" 2>&1 >/dev/null)" || true
+    [[ -n "$error_msg" ]] && log_docker_error "$error_msg"  # log rm error message if not empty
+  fi
+
+  # sanity check
+  if [[ -f "$target" ]]; then
+    log_docker_error "File could not be removed."
+  else
+    log_docker_info "File has been removed."
+  fi
+}
