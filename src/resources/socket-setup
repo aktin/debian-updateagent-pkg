@@ -4,7 +4,7 @@
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
 # Date:         12 Aug 26
-# Purpose:      Create/Remove sockets on the host.
+# Purpose:      Create/Remove sockets and the scheduled apt-refresh timer on the host.
 #--------------------------------------
 
 set -euo pipefail
@@ -15,6 +15,11 @@ readonly SOCKET_UNITS=(
   "${PACKAGE_NAME}-info.socket"
   "${PACKAGE_NAME}-docker.socket"
   "${PACKAGE_NAME}-docker-info.socket"
+)
+# Timer(s) enabled/disabled with the same lifecycle as the sockets. The paired
+# oneshot .service is pulled in by the timer and is not enabled on its own.
+readonly SCHEDULE_UNITS=(
+  "${PACKAGE_NAME}-apt-refresh.timer"
 )
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
@@ -32,16 +37,16 @@ setup_socket_services() {
   fi
   log_native_info "daemon reloaded"
 
-  if ! systemctl enable "${SOCKET_UNITS[@]}"; then
-    log_native_warn "Failed to enable one or more socket services"
+  if ! systemctl enable "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native_warn "Failed to enable one or more socket/timer units"
   fi
-  log_native_info "${SOCKET_UNITS[@]}"
-  log_native_info "sockets enabled"
+  log_native_info "${SOCKET_UNITS[@]} ${SCHEDULE_UNITS[@]}"
+  log_native_info "sockets and timers enabled"
 
-  if ! systemctl start "${SOCKET_UNITS[@]}"; then
-    log_native_warn "Failed to start one or more socket services"
+  if ! systemctl start "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native_warn "Failed to start one or more socket/timer units"
   fi
-  log_native_info "Socket services initialized"
+  log_native_info "Socket services and timers initialized"
 }
 
 # stop update-agent sockets on the host, without disabling them; used before an
@@ -53,11 +58,11 @@ stop_socket_services() {
     return
   fi
 
-  log_native_info "Stopping socket services..."
-  if ! systemctl stop "${SOCKET_UNITS[@]}"; then
-    log_native_warn "Failed to stop one or more socket services"
+  log_native_info "Stopping socket services and timers..."
+  if ! systemctl stop "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native_warn "Failed to stop one or more socket/timer units"
   fi
-  log_native_info "Socket services stopped"
+  log_native_info "Socket services and timers stopped"
 }
 
 # stop and disable update-agent sockets on the host
@@ -67,10 +72,10 @@ remove_socket_services() {
   if ! command -v systemctl >/dev/null 2>&1; then
     return
   fi
-  if ! systemctl disable "${SOCKET_UNITS[@]}"; then
-    log_native_warn "Failed to disable one or more socket services"
+  if ! systemctl disable "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native_warn "Failed to disable one or more socket/timer units"
   fi
-  log_native_info "Socket services disabled"
+  log_native_info "Socket services and timers disabled"
 }
 
 

@@ -106,6 +106,8 @@ prepare_service_files() {
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}@.service"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service-info.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info.socket"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info@.service"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/apt-refresh.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-apt-refresh.service"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/apt-refresh.timer" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-apt-refresh.timer"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker.socket"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker@.service"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker-info.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker-info.socket"
