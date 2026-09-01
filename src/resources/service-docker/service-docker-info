@@ -14,6 +14,16 @@ readonly client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
+# Prevent concurrent copies of this script for the same client. Use lockfile.
+readonly lockfile="__AKTIN_UPDATE_DIR__/${client_ip//./_}-docker-info.lock"
+mkdir -p "__AKTIN_UPDATE_DIR__"
+exec 9>"$lockfile"
+if ! flock -n 9; then
+  log_docker_warn "docker-info already running for ${client_ip:-unknown}, skipping duplicate request"
+  exit 0
+fi
+
+
 # writes a summary file to a docker data warehouse. This file contains package versions, the data warehouse
 # can use to interpret update necessity
 write_tenant_info() {
@@ -58,4 +68,3 @@ fi
 latest="$(get_latest_j2ee_release)"
 dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
 write_tenant_info "$dwh_prefix" "$latest"
-
