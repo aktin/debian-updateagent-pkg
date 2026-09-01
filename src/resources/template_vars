@@ -25,6 +25,9 @@ REQUIRED_DOCKER_IMAGES="ghcr.io/aktin/notaufnahme-dwh-wildfly ghcr.io/aktin/nota
 DWH_GITHUB_TAGS_API="https://api.github.com/repos/aktin/dwh-j2ee/tags"
 DOCKER_COMPOSE_RELEASE_URL="https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml"
 
+# --- Scheduled APT package list refresh ---
+APT_REFRESH_ONCALENDAR="*-*-* 00:15:00"
+
 # --- Socket listen addresses / ports ---
 BIND_ADDR_LOCAL="127.0.0.1"
 BIND_ADDR_ALL="0.0.0.0"
