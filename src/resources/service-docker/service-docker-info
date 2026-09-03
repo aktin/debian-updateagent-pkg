@@ -31,8 +31,9 @@ write_tenant_info() {
   log_docker_info "Collecting tenant info for $dwh_prefix"
 
   local wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
-  local update_dir installed
+  local update_dir installed candidate
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
+  candidate="$(normalize_version "$latest")"
 
   # create lockfile for client to know, info fetching is still in progress
   echo "" > "$update_dir/info.lock"
@@ -43,11 +44,11 @@ write_tenant_info() {
   if ! docker_is_wildfly_deployed "$wildfly_container"; then
     log_docker_warn "Wildfly not started yet. Attempt to run update-info later to create the info file."
   else
-    installed="$(docker_get_currently_deployed_version "$wildfly_container")"
+    installed="$(normalize_version "$(docker_get_currently_deployed_version "$wildfly_container")")"
 
     write_file_atomically "$update_dir/info" <<EOF
 version.installed=${installed}
-version.candidate=${latest}
+version.candidate=${candidate}
 version.time=$(date)
 
 request.client_ip=${client_ip}

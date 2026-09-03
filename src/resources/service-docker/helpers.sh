@@ -56,6 +56,12 @@ write_file_atomically() {
   fi
 }
 
+# Remove a single leading v from version string
+function normalize_version() {
+  local version="${1:-}"
+  echo "${version#[vV]}"
+}
+
 # Get version of last released data warehouse, from the AKTIN Github rspository.
 # Per default it excludes rc/beta/alpha/pre/dev tags entirely. If this script is given "false", it includes them,
 # but a full release still ranks above its own
@@ -193,14 +199,13 @@ function docker_post_update_validation() {
   local installed status candidate
 
   if docker_wait_for_deployment "$wildfly_container"; then
-    installed="$(docker_get_currently_deployed_version $wildfly_container)"
-    installed="v$installed" # because of git tagging rules adding v before version
+    installed="$(normalize_version "$(docker_get_currently_deployed_version $wildfly_container)")"
     log_docker_info "Got installed version $installed"
 
     status="$(docker_get_deployment_status $wildfly_container)"
     log_docker_info "Got deployment status $status"
 
-    candidate="$(get_latest_j2ee_release)"
+    candidate="$(normalize_version "$(get_latest_j2ee_release)")"
     log_docker_info "Got target candidate $candidate"
 
     if [[ "$installed" == "$candidate" && "$status" == "OK" ]]; then
