@@ -3,7 +3,7 @@
 # Script Name:  __PACKAGE_NAME__-docker
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
-# Date:         31 Aug 26
+# Date:         03 Sep 26
 # Purpose:      Service script to handle DWH package updates for docker DWHs
 #--------------------------------------
 
@@ -26,6 +26,10 @@ if [[ -z "$dwh_prefix" ]]; then
   log_docker_warn "no data warehouse matched client ip '$client_ip'"
   exit 0
 fi
+
+# Serialize updates per tenant: a second concurrent run would race on compose.yml and
+# backup-compose.yml in the shared compose dir and could snapshot a half-updated file.
+acquire_singleton_lock "${dwh_prefix}-docker-update"
 
 wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
 update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
