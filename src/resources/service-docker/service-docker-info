@@ -68,7 +68,9 @@ if ! command -v docker >/dev/null 2>&1; then
   log_docker_info "docker is not available on this host; nothing to report on"
 else
   latest="$(get_latest_j2ee_release)"
-  dwh_prefix="$(get_compose_prefix_from_ip $client_ip)"
-  write_tenant_info "$dwh_prefix" "$latest"
+  dwh_prefix="$(get_compose_prefix_from_ip $client_ip)" || {dwh_prefix=""; log_docker_warn "No container matched with client ip $client_ip"}
+  if [[ -n "$dwh_prefix" ]]; then
+    write_tenant_info "$dwh_prefix" "$latest"
+  fi
 fi
 
