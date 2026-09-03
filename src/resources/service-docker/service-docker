@@ -89,10 +89,13 @@ compose_dir="$(docker_get_compose_location_by_container "$wildfly_container")"
 docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir" || log_docker_warn "Failed to copy wildfly log to $update_dir"
 
 # back up the current compose config so a failed update can be rolled back
-error_stage="backup"
+error_stage="backup_composefile"
 cd "$compose_dir"
-mkdir -p backup
-cp compose.yml backup/compose.yml
+cp compose.yml backup-compose.yml
+
+# stop and remove containers
+error_stage="docker_down"
+docker compose down || abort_with_rollback "docker compose down failed"
 
 # fetch the new compose file (curl -f leaves compose.yml untouched on HTTP error)
 error_stage="fetch_compose"
@@ -100,8 +103,8 @@ curl -fLO __DOCKER_COMPOSE_RELEASE_URL__ || abort_with_rollback "Failed to fetch
 
 # apply it - past this point the running containers have changed
 error_stage="compose_up"
-{ docker compose down && docker compose pull && docker compose up -d; } \
-  || abort_with_rollback "docker compose down/pull/up failed"
+{ docker compose pull && docker compose up -d; } \
+  || abort_with_rollback "docker compose pull/up failed"
 
 error_stage="post_update_validation"
 successful="$(docker_post_update_validation "$wildfly_container")"
@@ -109,4 +112,4 @@ successful="$(docker_post_update_validation "$wildfly_container")"
 
 # success - discard the backup (still in $compose_dir from the backup stage)
 error_stage=""
-rm -rf backup || log_docker_warn "compose backup directory could not be removed"
+rm -f backup-compose.yml || log_docker_warn "compose backup could not be removed"

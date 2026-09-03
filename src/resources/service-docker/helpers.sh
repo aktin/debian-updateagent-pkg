@@ -225,12 +225,12 @@ function docker_restore_compose_backup() {
     log_docker_error "could not enter compose directory '$compose_dir' to restore backup"
     return 1
   fi
-  if [[ ! -f backup/compose.yml ]]; then
-    log_docker_error "no compose backup found at '$compose_dir/backup/compose.yml'"
+  if [[ ! -f backup-compose.yml ]]; then
+    log_docker_error "no compose backup found at '$compose_dir/backup-compose.yml'"
     return 1
   fi
 
-  cp backup/compose.yml compose.yml || log_docker_error "could not restore compose.yml from backup"
+  cp backup-compose.yml compose.yml || log_docker_error "could not restore compose.yml from backup"
   docker compose up -d || log_docker_error "failed to restart previous docker compose configuration"
 
   restored="$(docker_post_update_validation "$wildfly_container")"
