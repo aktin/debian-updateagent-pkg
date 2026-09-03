@@ -31,57 +31,28 @@ wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
 update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
 exec > >(tee -a "$update_dir/log") 2>&1   # save update log to the container, additionally to journal (main log location)
 
-# --------- Main update process----------------------------
-log_docker_info "Starting Docker update process"
-
-# defaults for every field written into the result file below: if a stage
-# fails or is skipped, these stay at a value that makes that visible instead
-# of the file silently holding a stale/previous run's data.
+# --------- Result file + cleanup, run on every exit path ----------------------
+# The script runs under "set -e": any unhandled error jumps straight to on_exit
+# instead of continuing in a half-updated state. on_exit is the single writer of
+# the result file, so the update summary is *always* recorded. error_stage is
+# advanced as the script enters each stage, so a bail-out names where it broke;
+# the defaults below stay in place unless a stage explicitly clears them, which
+# keeps a failure visible rather than leaving stale data behind.
 successful="false"
-error_stage=""
+error_stage="startup"
 
-if compose_dir="$(docker_get_compose_location_by_container "$wildfly_container")"; then
-  # persist latest wildfly log on host, best effort
-  docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir" || log_docker_warn "Failed to copy wildfly log to $update_dir"
+on_exit() {
+  local rc=$?
+  trap - EXIT
+  set +e   # never let a cleanup hiccup abort the cleanup itself
 
-  # backup old compose
-  cd "$compose_dir"
-  if mkdir -p backup && cp compose.yml backup/compose.yml; then
-    if curl -fLO __DOCKER_COMPOSE_RELEASE_URL__; then
-      if docker compose down && docker compose pull && docker compose up -d; then
-        successful="$(docker_post_update_validation "$wildfly_container")"
-        [[ "$successful" == "false" ]] && error_stage="post_update_validation"
-      else
-        log_docker_error "docker compose down/pull/up failed"
-        error_stage="compose_up"
-      fi
-    else
-      log_docker_error "Failed to fetch new compose file, aborting update process"
-      error_stage="fetch_compose"
-    fi
-
-    # reload old data warehouse on un-successful update
-    if [[ "$successful" == "false" ]]; then
-      log_docker_warn "starting docker was not sucessful, restoring old configuration"
-      cd "$compose_dir"
-      cp backup/compose.yml compose.yml
-      docker compose up -d || log_docker_error "Failed to restore previous docker compose configuration"
-      successful_backup="$(docker_post_update_validation "$wildfly_container")"
-      log_docker_info "Status of data warehouse restoring: $successful_backup"
-    else
-      cd "$compose_dir"
-      rm -r backup
-    fi
-  else
-    log_docker_error "Failed to back up existing compose configuration, aborting update process"
-    error_stage="backup"
+  if [[ "$successful" == "true" ]]; then
+    error_stage=""
+  elif [[ "$rc" -ne 0 ]]; then
+    log_docker_error "Docker update aborted during stage '$error_stage' (exit $rc)"
   fi
-else
-  log_docker_error "Could not determine Docker Compose directory, aborting update process"
-  error_stage="compose_dir_lookup"
-fi
 
-write_file_atomically "$update_dir/result" <<EOF
+  write_file_atomically "$update_dir/result" <<EOF || log_docker_error "Failed to write result file"
 update.success=${successful}
 update.error=${error_stage}
 update.time=$(date)
@@ -89,8 +60,53 @@ request.client_ip=${client_ip}
 request.client_port=${client_port}
 EOF
 
-# --------- CLEANUP ----------------------------
-# copy old update log into new container, best effort
-docker cp "$update_dir/server.log" "$wildfly_container":__WILDFLY_LOG_FILE__.1 || log_docker_warn "Failed to copy update log into new container"
-# remove old update version info
-rm_info_docker "$update_dir/info"
+  # copy the update log into the (possibly rebuilt) container, best effort
+  docker cp "$update_dir/server.log" "$wildfly_container":__WILDFLY_LOG_FILE__.1 || log_docker_warn "Failed to copy update log into new container"
+  # remove old update version info
+  rm_info_docker "$update_dir/info"
+
+  exit "$rc"
+}
+trap on_exit EXIT
+trap 'log_docker_error "unexpected failure on line $LINENO: \"$BASH_COMMAND\" (exit $?)"' ERR
+
+# Roll the running stack back to the backed-up compose config, then stop. Used
+# for failures that happen once the compose file / containers may already have
+# changed - a bare abort would leave the data warehouse down.
+abort_with_rollback() {
+  log_docker_error "$1"
+  docker_restore_compose_backup "$compose_dir" "$wildfly_container" || true
+  exit 1
+}
+
+# --------- Main update process ----------------------------
+log_docker_info "Starting Docker update process"
+
+error_stage="compose_dir_lookup"
+compose_dir="$(docker_get_compose_location_by_container "$wildfly_container")"
+
+# persist latest wildfly log on host, best effort
+docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir" || log_docker_warn "Failed to copy wildfly log to $update_dir"
+
+# back up the current compose config so a failed update can be rolled back
+error_stage="backup"
+cd "$compose_dir"
+mkdir -p backup
+cp compose.yml backup/compose.yml
+
+# fetch the new compose file (curl -f leaves compose.yml untouched on HTTP error)
+error_stage="fetch_compose"
+curl -fLO __DOCKER_COMPOSE_RELEASE_URL__ || abort_with_rollback "Failed to fetch new compose file"
+
+# apply it - past this point the running containers have changed
+error_stage="compose_up"
+{ docker compose down && docker compose pull && docker compose up -d; } \
+  || abort_with_rollback "docker compose down/pull/up failed"
+
+error_stage="post_update_validation"
+successful="$(docker_post_update_validation "$wildfly_container")"
+[[ "$successful" == "true" ]] || abort_with_rollback "post-update validation reported the data warehouse unhealthy"
+
+# success - discard the backup (still in $compose_dir from the backup stage)
+error_stage=""
+rm -rf backup || log_docker_warn "compose backup directory could not be removed"
