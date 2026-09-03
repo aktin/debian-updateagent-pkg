@@ -211,6 +211,32 @@ function docker_post_update_validation() {
   echo "$success"
 }
 
+# Roll a data warehouse back to its backed-up compose config and bring it up again.
+# Best effort: every step logs on failure instead of aborting, because this runs on
+# an already-failing update path where the priority is getting the old stack running.
+function docker_restore_compose_backup() {
+  local compose_dir="$1"
+  local wildfly_container="$2"
+  local restored
+
+  log_docker_warn "restoring previous compose configuration"
+
+  if ! cd "$compose_dir"; then
+    log_docker_error "could not enter compose directory '$compose_dir' to restore backup"
+    return 1
+  fi
+  if [[ ! -f backup/compose.yml ]]; then
+    log_docker_error "no compose backup found at '$compose_dir/backup/compose.yml'"
+    return 1
+  fi
+
+  cp backup/compose.yml compose.yml || log_docker_error "could not restore compose.yml from backup"
+  docker compose up -d || log_docker_error "failed to restart previous docker compose configuration"
+
+  restored="$(docker_post_update_validation "$wildfly_container")"
+  log_docker_info "status of data warehouse after restore: $restored"
+}
+
 # remove old version info file if exists. log errors during removing. Checks if the file was truly removed and logs if still exists. For native/debian cliants only.
 rm_info_native() {
   local info_path="__AKTIN_UPDATE_DIR__/info"
