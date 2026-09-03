@@ -62,6 +62,19 @@ function normalize_version() {
   echo "${version#[vV]}"
 }
 
+# Serialize this script against other runs that share the same lock KEY. Takes an
+# exclusive, non-blocking lock on fd 9 (held until the process exits). On contention the
+# already-running instance is left to finish the work and this run logs and exits 0.
+# Usage: acquire_singleton_lock <key>
+function acquire_singleton_lock() {
+  local key="$1"
+  exec 9>"/tmp/${key}.lock"
+  if ! flock -n 9; then
+    log_docker_warn "another '${key}' run is in progress; skipping duplicate request"
+    exit 0
+  fi
+}
+
 # Get version of last released data warehouse, from the AKTIN Github rspository.
 # Per default it excludes rc/beta/alpha/pre/dev tags entirely. If this script is given "false", it includes them,
 # but a full release still ranks above its own
