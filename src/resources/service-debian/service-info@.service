@@ -9,11 +9,11 @@
 [Unit]
 Description=AKTIN Update-Info Service
 After=network.target
-StartLimitBurst=3
-StartLimitIntervalSec=300
 
 [Service]
+# One instance per accepted connection (socket has Accept=yes). A failed run must not be
+# retried - the connection is already gone, and a transient failure (apt lock, dpkg mid-
+# configure) would otherwise loop. So no Restart= and no StartLimit* (per-instance counters
+# are meaningless here). Per-source throttling belongs on the .socket if ever needed.
 ExecStart=__PACKAGE_NAME__-info
 SyslogIdentifier=__PACKAGE_NAME__
-# Restart on failure but not too frequently
-Restart=on-failure
