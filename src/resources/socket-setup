@@ -16,8 +16,7 @@ readonly SOCKET_UNITS=(
   "${PACKAGE_NAME}-docker.socket"
   "${PACKAGE_NAME}-docker-info.socket"
 )
-# Timer(s) enabled/disabled with the same lifecycle as the sockets. The paired
-# oneshot .service is pulled in by the timer and is not enabled on its own.
+# Timer shares the sockets' enable/disable lifecycle; its oneshot .service is timer-pulled.
 readonly SCHEDULE_UNITS=(
   "${PACKAGE_NAME}-apt-refresh.timer"
 )
@@ -49,9 +48,8 @@ setup_socket_services() {
   log_native_info "Socket services and timers initialized"
 }
 
-# stop update-agent sockets on the host, without disabling them; used before an
-# upgrade so a changed ListenStream/Accept is picked up (systemctl start is a
-# no-op on an already-active unit) once the new unit files are configured
+# stop (not disable) sockets before an upgrade so a changed ListenStream/Accept takes
+# effect on restart (systemctl start is a no-op on an already-active unit)
 stop_socket_services() {
   if ! command -v systemctl >/dev/null 2>&1; then
     log_native_warn "systemctl is not available; skipping socket shutdown"

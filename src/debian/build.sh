@@ -4,9 +4,7 @@
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
 # Date:         24 Aug 26
-# Purpose:      Builds the AKTIN update agent Debian package. Injects variables into maintainer scripts.
-#               Creates service files, management scripts, and builds the final package with proper
-#               versioning and dependencies.
+# Purpose:      Renders templates (service files, maintainer scripts) and builds the .deb.
 #--------------------------------------
 
 set -euo pipefail
@@ -61,14 +59,12 @@ readonly PACKAGE_LIB_DIR="/usr/lib/${PACKAGE_NAME}"
 dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
 readonly DIR_BUILD="${DIR_SRC}/build/${PACKAGE_NAME}_${PACKAGE_VERSION}"
 
-# Declare list containing environment variables and insert variables, that
-# cannot be loaded automatically from configuration files
+# sed replacements: first the values derived here, then every __KEY__ from the config files.
 SED_ARGS=(
 -e "s|__PACKAGE_LIB_DIR__|${PACKAGE_LIB_DIR}|g"
 -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g"
 )
 
-# Automatically load all variables inside the config files and store them inside the list of environment variables.
 while read -r key; do
   SED_ARGS+=(-e "s|__${key}__|${!key}|g")
 done < <(grep -ohP '^[A-Za-z_][A-Za-z0-9_]*(?==)' "${DIR_RESOURCES}/template_vars" "${DIR_RESOURCES}/versions")
