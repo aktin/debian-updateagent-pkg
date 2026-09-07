@@ -4,8 +4,7 @@
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
 # Date:         24 Aug 26
-# Purpose:      Cleans up systemd state after package files (including unit files) have been removed by dpkg,
-#               and removes persisted update data when the package is purged.
+# Purpose:      Reload systemd after unit files are gone; on purge, drop persisted update data.
 #--------------------------------------
 
 readonly PACKAGE_NAME="__PACKAGE_NAME__"

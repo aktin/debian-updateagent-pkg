@@ -8,9 +8,8 @@
 #--------------------------------------
 
 
-# Native loggers: for host-level executions (debian-native DWH updates, socket-setup) with no
-# per-tenant context. Journal-only, no stdout/stderr echo - these scripts don't tee their output
-# into a per-run log file, so an echo here would only duplicate what systemd already journals.
+# Native loggers: host-level scripts with no per-tenant context. Journal-only (no echo) -
+# these scripts don't tee to a log file, so an echo would just duplicate the journal.
 log_native_info() {
   logger -t "__PACKAGE_NAME__" -p user.info -- "${1:-}" 2>/dev/null || true
 }
@@ -23,10 +22,8 @@ log_native_error() {
   logger -t "__PACKAGE_NAME__" -p user.err -- "${1:-}" 2>/dev/null || true
 }
 
-# Docker loggers: tag every line with the tenant (dwh_prefix) they concern and write it to stderr
-# only. systemd captures the service's stderr into the journal, and the docker service scripts tee
-# the same stream into a per-tenant log file - so a separate `logger` call would just double every
-# line in the journal. All lines are journaled at the service's default priority.
+# Docker loggers: tag each line with the tenant and write to stderr only. systemd journals it and
+# the service scripts tee the same stream to a per-tenant log file; a `logger` call would double it.
 log_docker_info() {
   local message="${1:-}"
   echo "[INFO] tenant=${dwh_prefix:-unknown} $message" >&2
@@ -62,10 +59,8 @@ function normalize_version() {
   echo "${version#[vV]}"
 }
 
-# Serialize this script against other runs that share the same lock KEY. Takes an
-# exclusive, non-blocking lock on fd 9 (held until the process exits). On contention the
-# already-running instance is left to finish the work and this run logs and exits 0.
-# Usage: acquire_singleton_lock <key>
+# Serialize runs sharing KEY: non-blocking flock on fd 9 (held until exit). On contention,
+# log and exit 0 - the already-running instance finishes the work.
 function acquire_singleton_lock() {
   local key="$1"
   exec 9>"/tmp/${key}.lock"
@@ -75,9 +70,8 @@ function acquire_singleton_lock() {
   fi
 }
 
-# Get version of last released data warehouse, from the AKTIN Github rspository.
-# Per default it excludes rc/beta/alpha/pre/dev tags entirely. If this script is given "false", it includes them,
-# but a full release still ranks above its own
+# Latest DWH release tag from the AKTIN GitHub repo. Excludes pre-release tags unless
+# passed "false"; a full release still outranks its own pre-releases.
 function get_latest_j2ee_release() {
   local full_release_only="${1:-true}"
   local tags latest
@@ -154,12 +148,11 @@ function docker_get_compose_location_by_container() {
   echo "$compose_dir"
 }
 
-# This function finds the data warehouse version inside a given wildfly container. It uses the jboss CLI inside the container.
+# DWH version deployed in the wildfly container, via jboss CLI.
 function docker_get_currently_deployed_version() {
   local container_name="$1"
   local installed
-  # "|| true" prevents a no-match grep (deployment not present/ready) from tripping "set -e" via
-  # pipefail and aborting the whole script; an empty result is a valid, callers-handle-it outcome.
+  # "|| true": a no-match grep is a valid empty result, not a pipefail abort.
   installed=$(docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
     | awk '{print $1}' \
@@ -175,8 +168,7 @@ function docker_is_wildfly_deployed() {
   return 1
 }
 
-# Wait until JBoss is reachable and finds a deployment. Does not check deployment status, only if the deployment exists.
-# returns: 0 if deployment was found, non-zero if timeout was reached.
+# Wait until a deployment exists (not its status). Returns non-zero on timeout.
 function docker_wait_for_deployment() {
   local wildfly_container="$1"
   local timeout_seconds="${2:-300}"
@@ -229,9 +221,8 @@ function docker_post_update_validation() {
   echo "$success"
 }
 
-# Roll a data warehouse back to its backed-up compose config and bring it up again.
-# Best effort: every step logs on failure instead of aborting, because this runs on
-# an already-failing update path where the priority is getting the old stack running.
+# Restore the backed-up compose config and bring the stack up. Best effort: each step
+# logs on failure rather than aborting - this runs on an already-failing update path.
 function docker_restore_compose_backup() {
   local compose_dir="$1"
   local wildfly_container="$2"
@@ -255,18 +246,16 @@ function docker_restore_compose_backup() {
   log_docker_info "status of data warehouse after restore: $restored"
 }
 
-# remove old version info file if exists. log errors during removing. Checks if the file was truly removed and logs if still exists. For native/debian cliants only.
+# Remove the native version info file, logging any rm error and verifying it's gone.
 rm_info_native() {
   local info_path="__AKTIN_UPDATE_DIR__/info"
 
-  # remove file and log error if one occured
   if [[ -f "$info_path" ]]; then
     log_native_info "Found old version info file. Attempting to remove..."
     error_msg="$(rm "$info_path" 2>&1 >/dev/null)" || true
-    [[ -n "$error_msg" ]] && log_native_error "$error_msg"  # log rm error message if not empty
+    [[ -n "$error_msg" ]] && log_native_error "$error_msg"
   fi
 
-  # sanity check
   if [[ -f "$info_path" ]]; then
     log_native_error "Version info file could not be removed."
   else
@@ -274,18 +263,16 @@ rm_info_native() {
   fi
 }
 
-# remove old version info file for given update directory. For docker clients only.
+# Remove the docker version info file at the given path, logging and verifying as above.
 rm_info_docker() {
   local info_path="$1"
 
-  # remove file and log error if one occured
   if [[ -f "$info_path" ]]; then
     log_docker_info "Found old version info file. Attempting to remove..."
     error_msg="$(rm "$info_path" 2>&1 >/dev/null)" || true
-    [[ -n "$error_msg" ]] && log_docker_error "$error_msg"  # log rm error message if not empty
+    [[ -n "$error_msg" ]] && log_docker_error "$error_msg"
   fi
 
-  # sanity check
   if [[ -f "$info_path" ]]; then
     log_docker_error "Version info file could not be removed."
   else
@@ -293,17 +280,16 @@ rm_info_docker() {
   fi
 }
 
+# Remove an arbitrary file (docker context), logging and verifying as above.
 rm_file_docker() {
   local target="$1"
 
-  # remove file and log error if one occured
   if [[ -f "$target" ]]; then
     log_docker_info "Found removal target $target"
     error_msg="$(rm "$target" 2>&1 >/dev/null)" || true
-    [[ -n "$error_msg" ]] && log_docker_error "$error_msg"  # log rm error message if not empty
+    [[ -n "$error_msg" ]] && log_docker_error "$error_msg"
   fi
 
-  # sanity check
   if [[ -f "$target" ]]; then
     log_docker_error "File could not be removed."
   else

@@ -18,8 +18,7 @@ source "__PACKAGE_LIB_DIR__/helpers.sh"
 acquire_singleton_lock "${client_ip//./_}-docker-info"
 
 
-# writes a summary file to a docker data warehouse. This file contains package versions, the data warehouse
-# can use to interpret update necessity
+# Write the version summary file the DWH reads to decide if an update is needed.
 write_tenant_info() {
   local dwh_prefix="$1"
   local latest="$2"
@@ -30,12 +29,11 @@ write_tenant_info() {
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
   candidate="$(normalize_version "$latest")"
 
-  # create lockfile for client to know, info fetching is still in progress
+  # signal "fetch in progress" to the client, then clear any stale info file
   echo "" > "$update_dir/info.lock"
-  # always remove old info file to avoid misconceptions
   rm_info_docker "$update_dir/info"
 
-  # only write update-info file if wildfly is deployed
+  # only write the info file once wildfly is deployed
   if ! docker_is_wildfly_deployed "$wildfly_container"; then
     log_docker_warn "Wildfly not started yet. Attempt to run update-info later to create the info file."
   else

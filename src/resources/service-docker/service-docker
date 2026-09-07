@@ -18,17 +18,14 @@ source "__PACKAGE_LIB_DIR__/helpers.sh"
 log_docker_info "Start updating Docker DWH"
 
 # --------- Pre-update preparation ----------------------------
-# no update_dir can exist until a tenant is identified, so there is nothing
-# to record on failure here - log and exit cleanly instead of continuing
-# with an invalid path.
-dwh_prefix="$(get_compose_prefix_from_ip "$client_ip")" || dwh_prefix=""  # get dwh prefix or store empty value if any error occured
+# no tenant yet means no update_dir to record a failure in - just log and exit.
+dwh_prefix="$(get_compose_prefix_from_ip "$client_ip")" || dwh_prefix=""
 if [[ -z "$dwh_prefix" ]]; then
   log_docker_warn "no data warehouse matched client ip '$client_ip'"
   exit 0
 fi
 
-# Serialize updates per tenant: a second concurrent run would race on compose.yml and
-# backup-compose.yml in the shared compose dir and could snapshot a half-updated file.
+# Serialize updates per tenant: concurrent runs race on compose.yml / backup-compose.yml.
 acquire_singleton_lock "${dwh_prefix}-docker-update"
 
 wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
@@ -36,12 +33,8 @@ update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
 exec > >(tee -a "$update_dir/log") 2>&1   # save update log to the container, additionally to journal (main log location)
 
 # --------- Result file + cleanup, run on every exit path ----------------------
-# The script runs under "set -e": any unhandled error jumps straight to on_exit
-# instead of continuing in a half-updated state. on_exit is the single writer of
-# the result file, so the update summary is *always* recorded. error_stage is
-# advanced as the script enters each stage, so a bail-out names where it broke;
-# the defaults below stay in place unless a stage explicitly clears them, which
-# keeps a failure visible rather than leaving stale data behind.
+# on_exit is the single writer of the result file, so a summary is always recorded even
+# when "set -e" aborts mid-update. error_stage names whichever stage was running.
 successful="false"
 error_stage="startup"
 
@@ -74,9 +67,8 @@ EOF
 trap on_exit EXIT
 trap 'log_docker_error "unexpected failure on line $LINENO: \"$BASH_COMMAND\" (exit $?)"' ERR
 
-# Roll the running stack back to the backed-up compose config, then stop. Used
-# for failures that happen once the compose file / containers may already have
-# changed - a bare abort would leave the data warehouse down.
+# Roll back to the backed-up compose config and stop - for failures once the stack
+# may already have changed, where a bare abort would leave the DWH down.
 abort_with_rollback() {
   log_docker_error "$1"
   docker_restore_compose_backup "$compose_dir" "$wildfly_container" || true
