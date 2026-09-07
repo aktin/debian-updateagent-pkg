@@ -1,16 +1,13 @@
 #!/bin/bash
 #--------------------------------------
 # Script Name:  build.sh
-# Version:      1.1
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         06 Dec 24
-# Purpose:      Builds the AKTIN update agent Debian package. Creates service files, management scripts, and builds the final package with proper
-#               versioning and dependencies.
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         24 Aug 26
+# Purpose:      Renders templates (service files, maintainer scripts) and builds the .deb.
 #--------------------------------------
 
 set -euo pipefail
-
-readonly PACKAGE_NAME="aktin-notaufnahme-updateagent"
 
 CLEANUP=false
 SKIP_BUILD=false
@@ -52,21 +49,34 @@ done
 readonly DIR_DEBIAN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly DIR_SRC="$(dirname "${DIR_DEBIAN}")"
 readonly DIR_RESOURCES="${DIR_SRC}/resources"
-readonly DIR_DOWNLOADS="${DIR_SRC}/downloads"
 
-# Load version-specific variables from file
+# Load package configuration and version-specific variables from file
 set -a
+. "${DIR_RESOURCES}/template_vars"
 . "${DIR_RESOURCES}/versions"
 set +a
+readonly PACKAGE_LIB_DIR="/usr/lib/${PACKAGE_NAME}"
+dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
 readonly DIR_BUILD="${DIR_SRC}/build/${PACKAGE_NAME}_${PACKAGE_VERSION}"
+
+# sed replacements: first the values derived here, then every __KEY__ from the config files.
+SED_ARGS=(
+-e "s|__PACKAGE_LIB_DIR__|${PACKAGE_LIB_DIR}|g"
+-e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g"
+)
+
+while read -r key; do
+  SED_ARGS+=(-e "s|__${key}__|${!key}|g")
+done < <(grep -ohP '^[A-Za-z_][A-Za-z0-9_]*(?==)' "${DIR_RESOURCES}/template_vars" "${DIR_RESOURCES}/versions")
+readonly SED_ARGS
+
 
 clean_up_build_environment() {
   echo "Cleaning up previous build environment..."
   rm -rf "${DIR_BUILD}"
   if [[ "${FULL_CLEAN}" == true ]]; then
     echo "Performing full clean..."
-    rm -rf "${DIR_SRC}/build"
-    rm -rf "${DIR_DOWNLOADS}"
+    rm -rf "${DIR_SRC}/build" || true
   fi
 }
 
@@ -78,40 +88,49 @@ init_build_environment() {
 }
 
 prepare_service_files() {
-  local dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
-  local update_dir="/var/lib/aktin/update"
   echo "Preparing update agent service files..."
 
   # Replace placeholders
   mkdir -p "${DIR_BUILD}/usr/bin"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" -e "s|__AKTIN_UPDATE_DIR__|${update_dir}|g" "${DIR_RESOURCES}/service-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info"
 
   mkdir -p "${DIR_BUILD}/lib/systemd/system"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}.socket"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}@.service"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-info.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info.socket"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/service-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info@.service"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}.socket"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}@.service"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service-info.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info.socket"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-info@.service"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/apt-refresh.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-apt-refresh.service"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/apt-refresh.timer" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-apt-refresh.timer"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker.socket"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker@.service"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker-info.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker-info.socket"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker-info@.service"
 
-  mkdir -p "${DIR_BUILD}/etc/apt/apt.conf.d"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_RESOURCES}/apt.update.post-invoke" > "${DIR_BUILD}/etc/apt/apt.conf.d/99${PACKAGE_NAME}-info"
+  mkdir -p "${DIR_BUILD}${PACKAGE_LIB_DIR}"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/socket-setup" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/helpers.sh" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/helpers.sh"
 
   # Set proper executable permissions
-  chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
+  chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info" "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"
 }
 
 prepare_management_scripts_and_files() {
-  local dwh_package_name="$(echo "${PACKAGE_NAME}" | awk -F '-' '{print $1"-"$2"-dwh"}')"
   echo "Preparing Debian package management files..."
   mkdir -p "${DIR_BUILD}/DEBIAN"
 
   # Replace placeholders
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" -e "s|__PACKAGE_VERSION__|${PACKAGE_VERSION}|g" -e "s|__DWH_PACKAGE_NAME__|${dwh_package_name}|g" "${DIR_DEBIAN}/control" > "${DIR_BUILD}/DEBIAN/control"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
-  sed -e "s|__PACKAGE_NAME__|${PACKAGE_NAME}|g" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
+  sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/control" > "${DIR_BUILD}/DEBIAN/control"
+  sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/preinst" > "${DIR_BUILD}/DEBIAN/preinst"
+  sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/prerm" > "${DIR_BUILD}/DEBIAN/prerm"
+  sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/postinst" > "${DIR_BUILD}/DEBIAN/postinst"
+  sed "${SED_ARGS[@]}" "${DIR_DEBIAN}/postrm" > "${DIR_BUILD}/DEBIAN/postrm"
 
-  # Set proper executable permissions
-  chmod 0755 "${DIR_BUILD}/DEBIAN/"*
+  # Ensure correct permissions
+  chmod 0644 "${DIR_BUILD}/DEBIAN/control"  # focus on readability, because "contol" is a metadata package
+  chmod 0755 "${DIR_BUILD}/DEBIAN/preinst" "${DIR_BUILD}/DEBIAN/prerm" "${DIR_BUILD}/DEBIAN/postinst" "${DIR_BUILD}/DEBIAN/postrm"  # focus on execution, this package contains the scripts
 }
 
 build_package() {

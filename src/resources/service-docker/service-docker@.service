@@ -1,0 +1,18 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__-docker@.service
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         07 Apr 26
+# Purpose:      Service unit for Docker update execution
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Docker Update Service
+After=network.target
+
+[Service]
+# One instance per accepted connection (socket has Accept=yes). A failed run must not be
+# retried - the connection is already gone. So no Restart= and no StartLimit* (per-instance
+# counters are meaningless here). Per-source throttling belongs on the .socket if ever needed.
+ExecStart=__PACKAGE_NAME__-docker
+SyslogIdentifier=__PACKAGE_NAME__

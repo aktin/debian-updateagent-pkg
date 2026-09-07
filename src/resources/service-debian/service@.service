@@ -1,0 +1,19 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__@.service
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         13 Aug 26
+# Purpose:      Service unit for exexuting debian data warehouse updates
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Update Service
+After=network.target
+
+[Service]
+# One instance per accepted connection (socket has Accept=yes). A failed run must not be
+# retried - the connection is already gone, and a transient failure (apt lock, dpkg mid-
+# configure) would otherwise loop. So no Restart= and no StartLimit* (per-instance counters
+# are meaningless here). Per-source throttling belongs on the .socket if ever needed.
+ExecStart=__PACKAGE_NAME__
+SyslogIdentifier=__PACKAGE_NAME__

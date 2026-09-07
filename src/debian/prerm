@@ -1,50 +1,56 @@
 #!/bin/bash
 #--------------------------------------
 # Script Name:  prerm
-# Version:      1.0
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         14 Nov 24
-# Purpose:      Prepares the system before package files are removed by stopping services, backing up user data, and cleaning runtime artifacts.
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         24 Aug 26
+# Purpose:      Prepares the system before package files are removed, by stopping systemd sockets
+
 #--------------------------------------
 
-log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
-log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
-log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
-log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+readonly PACKAGE_NAME="__PACKAGE_NAME__"
+
+log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.info -- "$1" 2>/dev/null || true; }
+log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.notice -- "$1" 2>/dev/null || true; }
+log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.warning -- "$1" 2>/dev/null || true; }
+log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; logger -t "${PACKAGE_NAME}" -p user.err -- "$1" 2>/dev/null || true; }
 
 readonly OPERATION="${1}"
+readonly SOCKET_MANAGEMENT_SCRIPT="__PACKAGE_LIB_DIR__/socket-setup"
 
-stop_socket_services() {
-  log_info "Stopping socket services..."
-  if ! systemctl stop __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
-    log_warn "Failed to stop socket services"
-  fi
 
-  if ! systemctl disable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
-    log_warn "Failed to disable socket services"
+rm_sockets() {
+  if [[ -x "${SOCKET_MANAGEMENT_SCRIPT}" ]]; then
+    log_info "Running socket cleanup..."
+    if ! "${SOCKET_MANAGEMENT_SCRIPT}" remove; then
+      log_warn "Instance-specific cleanup reported an error"
+    fi
+  else
+    log_warn "Socket helper-script not found at ${SOCKET_MANAGEMENT_SCRIPT}; skipping instance cleanup"
   fi
-  log_success "Socket services stopped and disabled"
 }
 
-cleanup_directories() {
-  log_info "Removing AKTIN update directory..."
-  if ! rm -rf /var/lib/aktin/update; then
-    log_error "Failed to remove update directory"
-    exit 1
+stop_sockets() {
+  if [[ -x "${SOCKET_MANAGEMENT_SCRIPT}" ]]; then
+    log_info "Stopping sockets ahead of upgrade..."
+    if ! "${SOCKET_MANAGEMENT_SCRIPT}" stop; then
+      log_warn "Instance-specific socket stop reported an error"
+    fi
+  else
+    log_warn "Socket helper-script not found at ${SOCKET_MANAGEMENT_SCRIPT}; skipping socket stop"
   fi
-  log_success "Update directory removed"
 }
 
 main() {
   set -euo pipefail
   case "$OPERATION" in
     remove)
-      # Runs during package removal before files are deleted
-      stop_socket_services
-      cleanup_directories
+      # Runs during package removal before files are deleted.
+      rm_sockets
       ;;
     upgrade)
-      # Runs during package upgrade before old files are deleted
+      # Stop sockets, so later "postinst configure" step starts inactive sockets directly, with changed ListenStream/Accept
+      stop_sockets
       ;;
   esac
 }

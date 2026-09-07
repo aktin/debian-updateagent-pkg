@@ -1,0 +1,18 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__-apt-refresh.timer
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         31 Aug 26
+# Purpose:      Schedule for __PACKAGE_NAME__-apt-refresh.service. The run time
+#               is set at build time from APT_REFRESH_ONCALENDAR in template_vars.
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Update Agent APT index refresh schedule
+
+[Timer]
+OnCalendar=__APT_REFRESH_ONCALENDAR__
+Persistent=true
+
+[Install]
+WantedBy=timers.target

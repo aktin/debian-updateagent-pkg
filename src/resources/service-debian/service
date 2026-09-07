@@ -1,0 +1,80 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  __PACKAGE_NAME__
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         31 Aug 26
+# Purpose:      Service script to handle DWH package updates for debian installations only.
+#--------------------------------------
+
+set -euo pipefail
+
+source "__PACKAGE_LIB_DIR__/helpers.sh"
+
+# Bounded wait for a systemd unit to report active
+wait_for_active_unit() {
+  local unit="$1" timeout="${2:-60}" interval="${3:-2}"
+  local deadline=$((SECONDS + timeout))
+  while (( SECONDS < deadline )); do
+    systemctl is-active --quiet "$unit" && return 0
+    sleep "$interval"
+  done
+  return 1
+}
+
+# Bounded wait for the DWH deployment to report OK via jboss-cli
+wait_for_deployment_ok() {
+  local timeout="${1:-60}" interval="${2:-2}"
+  local deadline=$((SECONDS + timeout))
+  local status
+  while (( SECONDS < deadline )); do
+    status=$(__WILDFLY_CLI__ --connect --command="deployment-info" 2>/dev/null \
+      | awk '/dwh-j2ee-.*\.ear/ {print $NF; exit}') || true
+    [[ "$status" == "OK" ]] && return 0
+    sleep "$interval"
+  done
+  return 1
+}
+
+wildfly_installed="false"
+success="false"
+
+# Ensure update directory exists before anything is written to it, regardless of outcome below
+mkdir -p "__AKTIN_UPDATE_DIR__"
+
+# Find a executable wildfly service, indicating wildfly is installed on the host
+if systemctl list-unit-files | grep -q '^__WILDFLY_SERVICE__'; then
+  wildfly_installed="true"
+else
+  log_native_warn "E: wildfly.service is not installed on this host; nothing to update."
+fi
+
+if [[ "$wildfly_installed" == "true" ]]; then
+  # Perform update and capture result
+  if apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install "__DWH_PACKAGE_NAME__" > "__AKTIN_UPDATE_DIR__/log" 2>&1; then
+    # Restart deamon and wildfly in case package update left deployments in failed state.
+    if systemctl daemon-reload && systemctl restart __WILDFLY_SERVICE__; then
+      if wait_for_active_unit __WILDFLY_SERVICE__ && wait_for_deployment_ok; then
+        success="true"
+      else
+        log_native_error "E: wildfly did not report a healthy deployment within the timeout"
+      fi
+    fi
+  fi
+
+  # Write apt-get stdout/stderr into journald
+  logger -t "__PACKAGE_NAME__" -p user.info -f "__AKTIN_UPDATE_DIR__/log" 2>/dev/null || true
+fi
+
+write_file_atomically "__AKTIN_UPDATE_DIR__/result" <<EOF
+update.success=${success}
+update.time=$(date)
+EOF
+
+# ensure wildfly ownership of update directory
+if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
+  log_native_warn "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
+fi
+
+# Cleanup
+rm_info_native  # remove version info file

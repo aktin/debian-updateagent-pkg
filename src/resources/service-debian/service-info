@@ -1,0 +1,51 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  __PACKAGE_NAME__-info
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         31 Aug 26
+# Purpose:      Service script to collect DWH package version information
+#--------------------------------------
+
+set -euo pipefail
+
+readonly WILDFLY_SERVICE="__WILDFLY_SERVICE__"
+
+source "__PACKAGE_LIB_DIR__/helpers.sh"
+
+# Checks if a debian data warehouse is installed, by searching for the wildfly.service inside deamon
+ensure_debian_data_warehouse() {
+  if ! systemctl list-unit-files | grep -q "^${WILDFLY_SERVICE}"; then
+    log_native_info "$WILDFLY_SERVICE is not installed on this host; nothing to report on"
+    exit 0
+  fi
+}
+
+ensure_update_dir() {
+  mkdir -p "__AKTIN_UPDATE_DIR__"
+}
+
+ensure_update_dir_ownership() {
+  if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
+    log_native_warn "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
+  fi
+}
+
+log_native_info "A client has triggered update info socket for debian data warehouses"
+ensure_debian_data_warehouse
+ensure_update_dir
+
+# Get package versions
+installed=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Installed:\s*(.*)$/\1/p')
+candidate=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Candidate:\s*(.*)$/\1/p')
+
+# Write version info
+rm_info_native  # remove version info file
+write_file_atomically "__AKTIN_UPDATE_DIR__/info" <<EOF
+version.installed=${installed}
+version.candidate=${candidate}
+version.time=$(date)
+EOF
+log_native_info "Wrote version summary to update directory"
+
+ensure_update_dir_ownership

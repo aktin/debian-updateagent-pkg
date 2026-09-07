@@ -1,0 +1,111 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  __PACKAGE_NAME__-docker
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         03 Sep 26
+# Purpose:      Service script to handle DWH package updates for docker DWHs
+#--------------------------------------
+
+set -euo pipefail
+
+# collect client information
+client_ip="${REMOTE_ADDR:-}"
+client_port="${REMOTE_PORT:-}"
+
+source "__PACKAGE_LIB_DIR__/helpers.sh"
+
+log_docker_info "Start updating Docker DWH"
+
+# --------- Pre-update preparation ----------------------------
+# no tenant yet means no update_dir to record a failure in - just log and exit.
+dwh_prefix="$(get_compose_prefix_from_ip "$client_ip")" || dwh_prefix=""
+if [[ -z "$dwh_prefix" ]]; then
+  log_docker_warn "no data warehouse matched client ip '$client_ip'"
+  exit 0
+fi
+
+# Serialize updates per tenant: concurrent runs race on compose.yml / backup-compose.yml.
+acquire_singleton_lock "${dwh_prefix}-docker-update"
+
+wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
+update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
+exec > >(tee -a "$update_dir/log") 2>&1   # save update log to the container, additionally to journal (main log location)
+
+# --------- Result file + cleanup, run on every exit path ----------------------
+# on_exit is the single writer of the result file, so a summary is always recorded even
+# when "set -e" aborts mid-update. error_stage names whichever stage was running.
+successful="false"
+error_stage="startup"
+
+on_exit() {
+  local rc=$?
+  trap - EXIT
+  set +e   # never let a cleanup hiccup abort the cleanup itself
+
+  if [[ "$successful" == "true" ]]; then
+    error_stage=""
+  elif [[ "$rc" -ne 0 ]]; then
+    log_docker_error "Docker update aborted during stage '$error_stage' (exit $rc)"
+  fi
+
+  write_file_atomically "$update_dir/result" <<EOF || log_docker_error "Failed to write result file"
+update.success=${successful}
+update.error=${error_stage}
+update.time=$(date)
+request.client_ip=${client_ip}
+request.client_port=${client_port}
+EOF
+
+  # copy the update log into the (possibly rebuilt) container, best effort
+  docker cp "$update_dir/server.log" "$wildfly_container":__WILDFLY_LOG_FILE__.1 || log_docker_warn "Failed to copy update log into new container"
+  # remove old update version info
+  rm_info_docker "$update_dir/info"
+
+  exit "$rc"
+}
+trap on_exit EXIT
+trap 'log_docker_error "unexpected failure on line $LINENO: \"$BASH_COMMAND\" (exit $?)"' ERR
+
+# Roll back to the backed-up compose config and stop - for failures once the stack
+# may already have changed, where a bare abort would leave the DWH down.
+abort_with_rollback() {
+  log_docker_error "$1"
+  docker_restore_compose_backup "$compose_dir" "$wildfly_container" || true
+  exit 1
+}
+
+# --------- Main update process ----------------------------
+log_docker_info "Starting Docker update process"
+
+error_stage="compose_dir_lookup"
+compose_dir="$(docker_get_compose_location_by_container "$wildfly_container")"
+
+# persist latest wildfly log on host, best effort
+docker cp "$wildfly_container":__WILDFLY_LOG_FILE__ "$update_dir" || log_docker_warn "Failed to copy wildfly log to $update_dir"
+
+# back up the current compose config so a failed update can be rolled back
+error_stage="backup_composefile"
+cd "$compose_dir"
+cp compose.yml backup-compose.yml
+
+# stop and remove containers
+error_stage="docker_down"
+docker compose down || abort_with_rollback "docker compose down failed"
+
+# fetch the new compose file (curl -f leaves compose.yml untouched on HTTP error)
+error_stage="fetch_compose"
+curl -fLO __DOCKER_COMPOSE_RELEASE_URL__ || abort_with_rollback "Failed to fetch new compose file"
+
+# apply it - past this point the running containers have changed
+error_stage="compose_up"
+{ docker compose pull && docker compose up -d; } \
+  || abort_with_rollback "docker compose pull/up failed"
+
+error_stage="post_update_validation"
+successful="$(docker_post_update_validation "$wildfly_container")"
+[[ "$successful" == "true" ]] || abort_with_rollback "post-update validation reported the data warehouse unhealthy"
+
+# success - discard the backup (still in $compose_dir from the backup stage)
+error_stage=""
+rm -f backup-compose.yml || log_docker_warn "compose backup could not be removed"
