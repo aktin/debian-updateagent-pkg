@@ -39,8 +39,8 @@ write_file_atomically() {
   local dest="$1"
   local tmp
   tmp="$(mktemp "${dest}.XXXXXX")" || return 1
-  if cat >"$tmp" && chmod 0644 "$tmp"; then
-    mv -f "$tmp" "$dest"
+  if cat >"$tmp" && chmod 0644 "$tmp" && mv -f "$tmp" "$dest"; then
+    return 0
   else
     rm -f "$tmp"
     return 1
@@ -100,28 +100,12 @@ function cleanup_own_locks() {
   done
 }
 
-# Latest DWH release tag from the AKTIN GitHub repo. Excludes pre-release tags unless
-# passed "false"; a full release still outranks its own pre-releases.
+# Latest DWH release tag from the AKTIN GitHub repo. Excludes pre-release tags.
 function get_latest_j2ee_release() {
-  local full_release_only="${1:-true}"
   local tags latest
 
-  tags=$(curl -s __DWH_GITHUB_TAGS_API__ | grep -oP '"name":\s*"\K[^"]+') || true
-
-  # filter only full releases if the tag is set to "true"
-  if [[ "$full_release_only" == "true" ]]; then
-    tags=$(printf '%s\n' "$tags" | grep -P '^v?[0-9]+(\.[0-9]+)*$') || true
-  fi
-
-  # sort tags accounting for full versions before their pre-release versions
-  latest=$(
-    paste \
-      <(printf '%s\n' "$tags" | sed -E 's/[-.]?(rc|beta|alpha|pre|dev)([0-9]*)$/~\1\2/I') \
-      <(printf '%s\n' "$tags") \
-    | sort -t $'\t' -k1,1V \
-    | tail -1 \
-    | cut -f2
-  )
+  tags=$(curl -s __DWH_GITHUB_TAGS_API__ | grep -oP '"name":\s*"\K[^"]+' | grep -P '^v?[0-9]+(\.[0-9]+)*$') || true
+  latest=$(printf '%s\n' "$tags" | sort -V | tail -1)
   echo "$latest"
 }
 
