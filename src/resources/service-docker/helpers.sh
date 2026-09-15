@@ -116,11 +116,10 @@ function get_compose_prefix_from_ip() {
 
   # list all docker containers and their network interfaces and search for the target ip
   dwh_prefix="$(
-    docker ps -q | while read -r cid; do
-      docker inspect \
+    docker inspect \
       --format '{{.Id}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}} {{index .Config.Labels "com.docker.compose.project"}}' \
-      "$cid"
-    done | awk -v ip="$ip" '{ for (i = 2; i < NF; i++) if ($i == ip) { print $NF; exit } }'
+      $(docker ps -q) 2>/dev/null \
+    | awk -v ip="$ip" '{ for (i = 2; i < NF; i++) if ($i == ip) { print $NF; exit } }'
   )"
 
   if [[ -z "$ip" || -z "$dwh_prefix" ]]; then
