@@ -164,10 +164,7 @@ function docker_get_currently_deployed_version() {
 
 function docker_is_wildfly_deployed() {
   local wildfly_container="$1"
-  if docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" >/dev/null 2>&1; then
-    return 0
-  fi
-  return 1
+  docker exec "$wildfly_container" __WILDFLY_CLI__ --connect --command="deployment-info" >/dev/null 2>&1
 }
 
 # Wait until a deployment exists (not its status). Returns non-zero on timeout.
