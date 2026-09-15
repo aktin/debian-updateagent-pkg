@@ -14,6 +14,12 @@ readonly client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
+# Always drop any info.lock this run created, even on error or systemd stop. TERM/INT
+# are routed through EXIT so the same handler covers abort paths (see cleanup_own_locks).
+trap cleanup_own_locks EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+
 # Prevent concurrent copies of this script for the same client (see decision 20260901).
 acquire_singleton_lock "${client_ip//./_}-docker-info"
 
@@ -22,20 +28,23 @@ acquire_singleton_lock "${client_ip//./_}-docker-info"
 write_tenant_info() {
   local dwh_prefix="$1"
   local latest="$2"
-  log_docker_info "Collecting tenant info for $dwh_prefix"
+  log_docker info "Collecting tenant info for $dwh_prefix"
 
   local wildfly_container="${dwh_prefix}__WILDFLY_CONTAINER_SUFFIX__"
   local update_dir installed candidate
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
   candidate="$(normalize_version "$latest")"
 
-  # signal "fetch in progress" to the client, then clear any stale info file
-  echo "" > "$update_dir/info.lock"
+  # break a lock a SIGKILLed predecessor may have stranded, then signal "fetch in
+  # progress" to the client and clear any stale info file. The lock is tagged with this
+  # run's token so the EXIT trap only ever removes our own.
+  clear_stale_lock "$update_dir/info.lock" 60
+  create_own_lock "$update_dir/info.lock"
   rm_info_docker "$update_dir/info"
 
   # only write the info file once wildfly is deployed
   if ! docker_is_wildfly_deployed "$wildfly_container"; then
-    log_docker_warn "Wildfly not started yet. Attempt to run update-info later to create the info file."
+    log_docker warn "Wildfly not started yet. Attempt to run update-info later to create the info file."
   else
     installed="$(normalize_version "$(docker_get_currently_deployed_version "$wildfly_container")")"
 
@@ -48,20 +57,20 @@ request.client_ip=${client_ip}
 request.client_port=${client_port}
 request.client_prefix=${dwh_prefix}
 EOF
-    log_docker_info "Saved tenant info summary to update directory"
+    log_docker info "Saved tenant info summary to update directory"
   fi
 
   rm_file_docker "$update_dir/info.lock"
 }
 
 
-log_docker_info "A client has triggered update info socket for docker data warehouses"
+log_docker info "A client has triggered update info socket for docker data warehouses"
 # verify docker exists on host
 if ! command -v docker >/dev/null 2>&1; then
-  log_docker_info "docker is not available on this host; nothing to report on"
+  log_docker info "docker is not available on this host; nothing to report on"
 else
   latest="$(get_latest_j2ee_release)"
-  dwh_prefix="$(get_compose_prefix_from_ip $client_ip)" || { dwh_prefix=""; log_docker_warn "No container matched with client ip $client_ip"; }
+  dwh_prefix="$(get_compose_prefix_from_ip $client_ip)" || { dwh_prefix=""; log_docker warn "No container matched with client ip $client_ip"; }
   if [[ -n "$dwh_prefix" ]]; then
     write_tenant_info "$dwh_prefix" "$latest"
   fi
