@@ -140,19 +140,8 @@ function docker_ensure_update_dir() {
 # Find the compose.yml file location for a given container name.
 function docker_get_compose_location_by_container() {
   local container_name="$1"
-  local compose_container="$container_name"
-  local compose_working_dir compose_config_files compose_dir
-  compose_working_dir="$(docker inspect "$compose_container" --format='{{index .Config.Labels "com.docker.compose.project.working_dir"}}')"
-  compose_config_files="$(docker inspect "$compose_container" --format='{{index .Config.Labels "com.docker.compose.project.config_files"}}')"
-
-  if [[ -n "$compose_working_dir" ]]; then
-    compose_dir="$compose_working_dir"
-  elif [[ -n "$compose_config_files" ]]; then
-    compose_dir="$(dirname "${compose_config_files%%,*}")"
-  else
-    log_docker warn "Could not determine Docker Compose directory for container: ${compose_container}"
-    return 1
-  fi
+  local compose_dir
+  compose_dir="$(docker inspect "$container_name" --format='{{index .Config.Labels "com.docker.compose.project.working_dir"}}')"
 
   if [[ ! -d "$compose_dir" ]]; then
     log_docker warn "Docker Compose directory does not exist: ${compose_dir}"
