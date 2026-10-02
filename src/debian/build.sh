@@ -114,7 +114,7 @@ prepare_service_files() {
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/helpers.sh" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/helpers.sh"
 
   # Set proper executable permissions
-  chmod +x "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker" "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info" "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"
+  chmod +x "${DIR_BUILD}/usr/bin/*" "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"
 }
 
 prepare_management_scripts_and_files() {
