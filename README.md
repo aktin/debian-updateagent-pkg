@@ -71,7 +71,7 @@ build time.
 Options:
 - `--cleanup`: Remove build directory after package creation
 - `--skip-deb-build`: Skip the Debian package build step
-- `--full-clean`: Remove the build and downloads directories before starting
+- `--full-clean`: Remove the build directory before starting
 
 ## Status Files
 Debian-native and Docker updates write the same three file names, into their respective update

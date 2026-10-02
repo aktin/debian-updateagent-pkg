@@ -17,7 +17,7 @@ usage() {
   echo "Usage: $0 [--cleanup] [--skip-deb-build] [--full-clean]" >&2
   echo "  --cleanup          Optional: Remove build directory after package creation" >&2
   echo "  --skip-deb-build   Optional: Skip the debian package build step" >&2
-  echo "  --full-clean       Optional: Remove build and downloads directories before starting" >&2
+  echo "  --full-clean       Optional: Remove build directoriy before starting" >&2
   exit 1
 }
 
