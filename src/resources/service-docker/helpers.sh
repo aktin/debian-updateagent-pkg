@@ -174,11 +174,11 @@ function docker_wait_for_deployment() {
   local check_interval_seconds="${3:-5}"
   local deadline_ts=$((SECONDS + timeout_seconds))
 
+  log_docker info "Waiting up to ${timeout_seconds}s for WildFly deployment"
   while (( SECONDS < deadline_ts )); do
     if docker_is_wildfly_deployed "$wildfly_container"; then
       return 0
     fi
-    log_docker info "WildFly deployment not ready yet, waiting ${check_interval_seconds}s"
     sleep "$check_interval_seconds"
   done
 
@@ -186,12 +186,15 @@ function docker_wait_for_deployment() {
   return 1
 }
 
-# Use JBoss CLI inside wildfly container to obtain data warehouse deployment status
-function docker_get_deployment_status() {
+# Installed DWH version and deployment status from the same jboss-cli deployment-info
+# row: prints "<version> <status>" so a caller needing both reads them from one exec.
+function docker_get_deployment_info() {
   local container_name="$1"
+  # "|| true": a no-match grep is a valid empty result, not a pipefail abort.
   docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
-    | awk '{print $NF}' || true
+    | sed 's/dwh-j2ee-\(.*\)\.ear/\1/' \
+    | awk '{print $1, $NF}' || true
 }
 
 
@@ -203,10 +206,9 @@ function docker_post_update_validation() {
   local installed status candidate
 
   if docker_wait_for_deployment "$wildfly_container"; then
-    installed="$(normalize_version "$(docker_get_currently_deployed_version $wildfly_container)")"
+    read -r installed status < <(docker_get_deployment_info "$wildfly_container")
+    installed="$(normalize_version "$installed")"
     log_docker info "Got installed version $installed"
-
-    status="$(docker_get_deployment_status $wildfly_container)"
     log_docker info "Got deployment status $status"
 
     candidate="$(normalize_version "$(get_latest_j2ee_release)")"
