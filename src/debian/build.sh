@@ -3,7 +3,7 @@
 # Script Name:  build.sh
 # Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
-# Date:         24 Aug 26
+# Date:         02 Okt 26
 # Purpose:      Renders templates (service files, maintainer scripts) and builds the .deb.
 #--------------------------------------
 
@@ -114,7 +114,7 @@ prepare_service_files() {
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/helpers.sh" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/helpers.sh"
 
   # Set proper executable permissions
-  chmod +x "${DIR_BUILD}/usr/bin/*" "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"
+  chmod +x "${DIR_BUILD}/usr/bin/"* "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"
 }
 
 prepare_management_scripts_and_files() {
