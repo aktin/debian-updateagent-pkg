@@ -64,42 +64,6 @@ function acquire_singleton_lock() {
   fi
 }
 
-# Lock files created by this run, cleaned up on exit so a mid-run abort (set -e,
-# docker hang, systemd SIGTERM) never strands an info.lock. SIGKILL and power loss
-# still can't be caught - consumers must also treat a stale lock as expired.
-_OWN_LOCKS=()
-_LOCK_TOKEN="$$-${RANDOM}-$(date +%s)"
-
-# Remove PATH if it exists and hasn't been touched for MAX_AGE seconds (default 60).
-# Breaks a plain marker lock (e.g. info.lock) stranded by a SIGKILLed predecessor;
-# flock-based locks don't need this, the kernel frees them on process death.
-function clear_stale_lock() {
-  local path="$1" max_age="${2:-60}" mtime now
-  [[ -e "$path" ]] || return 0
-  mtime="$(stat -c %Y "$path" 2>/dev/null)" || return 0
-  now="$(date +%s)"
-  if (( now - mtime > max_age )); then
-    log_docker warn "removing stale lock $path ($(( now - mtime ))s old)"
-    rm -f "$path"
-  fi
-}
-
-# Create a lock file tagged with this run's token and remember it for cleanup.
-function create_own_lock() {
-  local path="$1"
-  printf '%s\n' "$_LOCK_TOKEN" > "$path" || return 1
-  _OWN_LOCKS+=("$path")
-}
-
-# Remove only the locks this run still owns (token unchanged). Safe to call
-# repeatedly and when the lock was already removed on the happy path.
-function cleanup_own_locks() {
-  local path
-  for path in "${_OWN_LOCKS[@]:-}"; do
-    [[ "$(cat "$path" 2>/dev/null)" == "$_LOCK_TOKEN" ]] && rm -f "$path"
-  done
-}
-
 # Latest DWH release tag from the AKTIN GitHub repo. Excludes pre-release tags.
 function get_latest_j2ee_release() {
   local tags latest
@@ -245,55 +209,4 @@ function docker_restore_compose_backup() {
 
   restored="$(docker_post_update_validation "$wildfly_container")"
   log_docker info "status of data warehouse after restore: $restored"
-}
-
-# Remove the native version info file, logging any rm error and verifying it's gone.
-rm_info_native() {
-  local info_path="__AKTIN_UPDATE_DIR__/info"
-
-  if [[ -f "$info_path" ]]; then
-    log_native info "Found old version info file. Attempting to remove..."
-    error_msg="$(rm "$info_path" 2>&1 >/dev/null)" || true
-    [[ -n "$error_msg" ]] && log_native error "$error_msg"
-  fi
-
-  if [[ -f "$info_path" ]]; then
-    log_native error "Version info file could not be removed."
-  else
-    log_native info "Ensured version info file has been removed."
-  fi
-}
-
-# Remove the docker version info file at the given path, logging and verifying as above.
-rm_info_docker() {
-  local info_path="$1"
-
-  if [[ -f "$info_path" ]]; then
-    log_docker info "Found old version info file. Attempting to remove..."
-    error_msg="$(rm "$info_path" 2>&1 >/dev/null)" || true
-    [[ -n "$error_msg" ]] && log_docker error "$error_msg"
-  fi
-
-  if [[ -f "$info_path" ]]; then
-    log_docker error "Version info file could not be removed."
-  else
-    log_docker info "Ensured version info file has been removed."
-  fi
-}
-
-# Remove an arbitrary file (docker context), logging and verifying as above.
-rm_file_docker() {
-  local target="$1"
-
-  if [[ -f "$target" ]]; then
-    log_docker info "Found removal target $target"
-    error_msg="$(rm "$target" 2>&1 >/dev/null)" || true
-    [[ -n "$error_msg" ]] && log_docker error "$error_msg"
-  fi
-
-  if [[ -f "$target" ]]; then
-    log_docker error "File could not be removed."
-  else
-    log_docker info "File has been removed."
-  fi
 }
