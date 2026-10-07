@@ -157,7 +157,7 @@ function docker_get_deployment_info() {
   # "|| true": a no-match grep is a valid empty result, not a pipefail abort.
   docker exec "$container_name" __WILDFLY_CLI__ --connect --command="deployment-info" \
     | grep 'dwh-j2ee-.*\.ear' \
-    | sed 's/dwh-j2ee-\(.*\)\.ear/\1/' \
+    | sed 's/dwh-j2ee-\([^[:space:]]*\)\.ear/\1/' \
     | awk '{print $1, $NF}' || true
 }
 
