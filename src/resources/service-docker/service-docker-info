@@ -14,12 +14,6 @@ readonly client_port="${REMOTE_PORT:-}"
 
 source "__PACKAGE_LIB_DIR__/helpers.sh"
 
-# Always drop any info.lock this run created, even on error or systemd stop. TERM/INT
-# are routed through EXIT so the same handler covers abort paths (see cleanup_own_locks).
-trap cleanup_own_locks EXIT
-trap 'exit 143' TERM
-trap 'exit 130' INT
-
 # Prevent concurrent copies of this script for the same client (see decision 20260901).
 acquire_singleton_lock "${client_ip//./_}-docker-info"
 
@@ -35,12 +29,8 @@ write_tenant_info() {
   update_dir="$(docker_ensure_update_dir "$dwh_prefix")"
   candidate="$(normalize_version "$latest")"
 
-  # break a lock a SIGKILLed predecessor may have stranded, then signal "fetch in
-  # progress" to the client and clear any stale info file. The lock is tagged with this
-  # run's token so the EXIT trap only ever removes our own.
-  clear_stale_lock "$update_dir/info.lock" 60
-  create_own_lock "$update_dir/info.lock"
-  rm_info_docker "$update_dir/info"
+  # clear any stale info file
+  rm -f "$update_dir/info" || log_docker error "could not remove $update_dir/info"
 
   # only write the info file once wildfly is deployed
   if ! docker_is_wildfly_deployed "$wildfly_container"; then
@@ -59,8 +49,6 @@ request.client_prefix=${dwh_prefix}
 EOF
     log_docker info "Saved tenant info summary to update directory"
   fi
-
-  rm_file_docker "$update_dir/info.lock"
 }
 
 
