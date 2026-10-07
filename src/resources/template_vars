@@ -21,7 +21,6 @@ WILDFLY_LOG_FILE="/opt/wildfly/standalone/log/server.log"
 
 # --- Docker DWH ---
 WILDFLY_CONTAINER_SUFFIX="-wildfly-1"
-REQUIRED_DOCKER_IMAGES="ghcr.io/aktin/notaufnahme-dwh-wildfly ghcr.io/aktin/notaufnahme-dwh-httpd ghcr.io/aktin/notaufnahme-dwh-database"
 DWH_GITHUB_TAGS_API="https://api.github.com/repos/aktin/dwh-j2ee/tags"
 DOCKER_COMPOSE_RELEASE_URL="https://github.com/aktin/docker-aktin-dwh/releases/latest/download/compose.yml"
 
