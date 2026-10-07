@@ -1,0 +1,17 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__-docker-info.socket
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         07 Apr 26
+# Purpose:      Socket activation unit for Docker update info service
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Docker Update Info Socket
+
+[Socket]
+ListenStream=__BIND_ADDR_ALL__:__PORT_DOCKER_UPDATE_INFO__
+Accept=Yes
+
+[Install]
+WantedBy=sockets.target

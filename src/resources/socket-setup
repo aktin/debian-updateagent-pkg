@@ -1,0 +1,88 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  __PACKAGE_NAME__-socket-setup
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         12 Aug 26
+# Purpose:      Create/Remove sockets and the scheduled apt-refresh timer on the host.
+#--------------------------------------
+
+set -euo pipefail
+
+readonly PACKAGE_NAME="__PACKAGE_NAME__"
+readonly SOCKET_UNITS=(
+  "${PACKAGE_NAME}.socket"
+  "${PACKAGE_NAME}-info.socket"
+  "${PACKAGE_NAME}-docker.socket"
+  "${PACKAGE_NAME}-docker-info.socket"
+)
+# Timer shares the sockets' enable/disable lifecycle; its oneshot .service is timer-pulled.
+readonly SCHEDULE_UNITS=(
+  "${PACKAGE_NAME}-apt-refresh.timer"
+)
+
+source "__PACKAGE_LIB_DIR__/helpers.sh"
+
+# enable and start update-agent sockets on the host
+setup_socket_services() {
+  log_native info "Enabling and starting socket services..."
+  if systemctl daemon-reload; then
+    log_native info "daemon reloaded"
+  else
+    log_native warn "Failed to reload systemd daemon"
+  fi
+
+  if systemctl enable "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native info "enabled ${SOCKET_UNITS[*]} ${SCHEDULE_UNITS[*]}"
+  else
+    log_native warn "Failed to enable one or more socket/timer units"
+  fi
+
+  if systemctl start "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native info "Socket services and timers initialized"
+  else
+    log_native warn "Failed to start one or more socket/timer units"
+  fi
+}
+
+# Take all update-agent units down with the given systemctl verb: "stop" before an upgrade
+# (so a changed ListenStream/Accept takes effect on restart), "disable --now" on removal.
+teardown_socket_services() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    log_native warn "systemctl is not available; skipping 'systemctl $*'"
+    return
+  fi
+
+  if systemctl "$@" "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native info "systemctl $* succeeded for all socket/timer units"
+  else
+    log_native warn "systemctl $* failed for one or more socket/timer units"
+  fi
+}
+
+
+usage() {
+  echo "Usage: $0 <configure|stop|remove>" >&2
+  exit 1
+}
+
+main() {
+  local operation="${1:-}"
+
+  case "${operation}" in
+    configure)
+      setup_socket_services
+      ;;
+    stop)
+      teardown_socket_services stop
+      ;;
+    remove)
+      teardown_socket_services disable --now
+      ;;
+    *)
+      usage
+      ;;
+  esac
+}
+
+main "$@"

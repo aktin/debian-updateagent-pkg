@@ -1,8 +1,8 @@
 # ----------------------------------------------
 # Unit Name:    __PACKAGE_NAME__-info.socket
-# Version:      1.0
+# Version:      2.0
 # Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         14 Nov 24
+# Date:         13 Aug 26
 # Purpose:      Socket activation unit for AKTIN update info service
 # ----------------------------------------------
 
@@ -10,11 +10,8 @@
 Description=AKTIN Update Info Socket
 
 [Socket]
-ListenStream=127.0.0.1:1002
+ListenStream=__BIND_ADDR_LOCAL__:__PORT_UPDATE_INFO__
 Accept=Yes
-SocketUser=wildfly
-SocketGroup=wildfly
-StandardOutput=socket
 
 [Install]
 WantedBy=sockets.target

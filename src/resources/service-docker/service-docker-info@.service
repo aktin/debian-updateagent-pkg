@@ -1,0 +1,16 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__-docker-info@.service
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         02 Okt 26
+# Purpose:      Service unit for Docker update info checks
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Docker Update Info Service
+After=network.target
+
+[Service]
+# no "Restart=", one instance per connection, connection already gone when retry initiates
+ExecStart=__PACKAGE_NAME__-docker-info
+SyslogIdentifier=__PACKAGE_NAME__

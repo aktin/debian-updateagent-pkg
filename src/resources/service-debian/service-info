@@ -1,0 +1,38 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  __PACKAGE_NAME__-info
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         02 Okt 26
+# Purpose:      Service script to collect DWH package version information
+#--------------------------------------
+
+set -euo pipefail
+
+source "__PACKAGE_LIB_DIR__/helpers.sh"
+
+log_native info "A client has triggered update info socket for debian data warehouses"
+# Check if a debian data warehouse is installed, by searching for the wildfly.service inside deamon
+if ! systemctl list-unit-files | grep -q "^__WILDFLY_SERVICE__"; then
+  log_native info "__WILDFLY_SERVICE__ is not installed on this host; nothing to report on"
+  exit 0
+fi
+
+# ensure update directory exists
+mkdir -p "__AKTIN_UPDATE_DIR__"
+
+# Get package versions
+installed=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Installed:\s*(.*)$/\1/p')
+candidate=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Candidate:\s*(.*)$/\1/p')
+
+write_file_atomically "__AKTIN_UPDATE_DIR__/info" <<EOF
+version.installed=${installed}
+version.candidate=${candidate}
+version.time=$(date)
+EOF
+log_native info "Wrote version summary to update directory"
+
+# ensure wildfly owns the update directory
+if ! chown -R __WILDFLY_USER__:__WILDFLY_USER__ "__AKTIN_UPDATE_DIR__"; then
+  log_native warn "W: failed to set wildfly ownership on __AKTIN_UPDATE_DIR__"
+fi

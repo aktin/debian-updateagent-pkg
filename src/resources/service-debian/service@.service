@@ -1,0 +1,16 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__@.service
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         02 Okt 26
+# Purpose:      Service unit for exexuting debian data warehouse updates
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Update Service
+After=network.target
+
+[Service]
+# no "Restart=", one instance per connection, connection already gone
+ExecStart=__PACKAGE_NAME__
+SyslogIdentifier=__PACKAGE_NAME__
