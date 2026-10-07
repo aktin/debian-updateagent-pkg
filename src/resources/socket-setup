@@ -25,55 +25,39 @@ source "__PACKAGE_LIB_DIR__/helpers.sh"
 
 # enable and start update-agent sockets on the host
 setup_socket_services() {
-  if ! command -v systemctl >/dev/null 2>&1; then
-    log_native warn "systemctl is not available; skipping socket setup"
-    return
-  fi
-
   log_native info "Enabling and starting socket services..."
-  if ! systemctl daemon-reload; then
+  if systemctl daemon-reload; then
+    log_native info "daemon reloaded"
+  else
     log_native warn "Failed to reload systemd daemon"
   fi
-  log_native info "daemon reloaded"
 
-  if ! systemctl enable "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+  if systemctl enable "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native info "enabled ${SOCKET_UNITS[*]} ${SCHEDULE_UNITS[*]}"
+  else
     log_native warn "Failed to enable one or more socket/timer units"
   fi
-  log_native info "${SOCKET_UNITS[@]} ${SCHEDULE_UNITS[@]}"
-  log_native info "sockets and timers enabled"
 
-  if ! systemctl start "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+  if systemctl start "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native info "Socket services and timers initialized"
+  else
     log_native warn "Failed to start one or more socket/timer units"
   fi
-  log_native info "Socket services and timers initialized"
 }
 
-# stop (not disable) sockets before an upgrade so a changed ListenStream/Accept takes
-# effect on restart (systemctl start is a no-op on an already-active unit)
-stop_socket_services() {
+# Take all update-agent units down with the given systemctl verb: "stop" before an upgrade
+# (so a changed ListenStream/Accept takes effect on restart), "disable --now" on removal.
+teardown_socket_services() {
   if ! command -v systemctl >/dev/null 2>&1; then
-    log_native warn "systemctl is not available; skipping socket shutdown"
+    log_native warn "systemctl is not available; skipping 'systemctl $*'"
     return
   fi
 
-  log_native info "Stopping socket services and timers..."
-  if ! systemctl stop "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
-    log_native warn "Failed to stop one or more socket/timer units"
+  if systemctl "$@" "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
+    log_native info "systemctl $* succeeded for all socket/timer units"
+  else
+    log_native warn "systemctl $* failed for one or more socket/timer units"
   fi
-  log_native info "Socket services and timers stopped"
-}
-
-# stop and disable update-agent sockets on the host
-remove_socket_services() {
-  stop_socket_services
-
-  if ! command -v systemctl >/dev/null 2>&1; then
-    return
-  fi
-  if ! systemctl disable "${SOCKET_UNITS[@]}" "${SCHEDULE_UNITS[@]}"; then
-    log_native warn "Failed to disable one or more socket/timer units"
-  fi
-  log_native info "Socket services and timers disabled"
 }
 
 
@@ -90,10 +74,10 @@ main() {
       setup_socket_services
       ;;
     stop)
-      stop_socket_services
+      teardown_socket_services stop
       ;;
     remove)
-      remove_socket_services
+      teardown_socket_services disable --now
       ;;
     *)
       usage
