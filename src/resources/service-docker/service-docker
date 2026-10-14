@@ -104,5 +104,4 @@ successful="$(docker_post_update_validation "$wildfly_container")"
 [[ "$successful" == "true" ]] || abort_with_rollback "post-update validation reported the data warehouse unhealthy"
 
 # success - discard the backup (still in $compose_dir from the backup stage)
-error_stage=""
 rm -f backup-compose.yml || log_docker warn "compose backup could not be removed"

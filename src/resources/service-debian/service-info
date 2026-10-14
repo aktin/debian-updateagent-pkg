@@ -22,8 +22,7 @@ fi
 mkdir -p "__AKTIN_UPDATE_DIR__"
 
 # Get package versions
-installed=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Installed:\s*(.*)$/\1/p')
-candidate=$(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | sed -nE 's/^\s*Candidate:\s*(.*)$/\1/p')
+read -r installed candidate < <(LC_ALL=C apt-cache policy "__DWH_PACKAGE_NAME__" | awk '/Installed:/{i=$2} /Candidate:/{c=$2} END{print i, c}')
 
 write_file_atomically "__AKTIN_UPDATE_DIR__/info" <<EOF
 version.installed=${installed}
