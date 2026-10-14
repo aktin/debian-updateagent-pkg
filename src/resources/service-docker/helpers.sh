@@ -172,11 +172,7 @@ function docker_post_update_validation() {
   if docker_wait_for_deployment "$wildfly_container"; then
     read -r installed status < <(docker_get_deployment_info "$wildfly_container")
     installed="$(normalize_version "$installed")"
-    log_docker info "Got installed version $installed"
-    log_docker info "Got deployment status $status"
-
     candidate="$(normalize_version "$(get_latest_j2ee_release)")"
-    log_docker info "Got target candidate $candidate"
 
     if [[ "$installed" == "$candidate" && "$status" == "OK" ]]; then
       success="true"
