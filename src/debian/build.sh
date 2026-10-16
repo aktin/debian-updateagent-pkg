@@ -92,7 +92,7 @@ prepare_service_files() {
 
   # Replace placeholders
   mkdir -p "${DIR_BUILD}/usr/bin"
-  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/sockets" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/aktin-notaufnahme-updateagent" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
 
   mkdir -p "${DIR_BUILD}/lib/systemd/system"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}.socket"
