@@ -18,16 +18,8 @@ sudo apt-get install -f  # Install missing dependencies if any
 
 The base package installs without requiring an AKTIN DWH instance. `postinst` handles setup
 automatically — it enables persistent journal storage and then enables/starts all four socket
-units via the bundled `socket-setup` helper. No manual step is required.
-
-```bash
-sudo /usr/lib/aktin-notaufnahme-updateagent/socket-setup configure
-```
-
-This is the command `postinst` already runs for you; invoke it manually only to re-enable/restart
-the sockets later (e.g. after running `socket-setup remove`). Ownership of the update directories
-is not handled by this helper — each service script `chown`s its own update directory to the
-`wildfly` user on every run.
+units. No manual step is required. Ownership of the update directories is not handled by
+`postinst` — each service script `chown`s its own update directory to the `wildfly` user on every run.
 
 ## Components
 - Update execution service (Port 1003)
