@@ -42,7 +42,7 @@ main() {
     configure)
       source "__PACKAGE_LIB_DIR__/helpers.sh"
       setup_socket_services
-      log_warn "Installed and activated multiple TCP sockets. You can manually control them inside CLI using: '${PACKAGE_NAME}-sockets <status|docker-start|docker-stop|debian-start|debian-stop>"
+      log_warn "Installed and activated multiple TCP sockets. You can manually control them inside CLI using: '${PACKAGE_NAME} <status|start|stop> <docker|debian>'"
       ;;
     abort-upgrade|abort-remove|abort-deconfigure)
       ;;
