@@ -7,6 +7,16 @@
 # Purpose:      Library for general helper functions 
 #--------------------------------------
 
+# Define socket groups
+readonly DEBIAN_SOCKETS=(
+  "__PACKAGE_NAME__.socket"
+  "__PACKAGE_NAME__-info.socket"
+  "__PACKAGE_NAME__-apt-refresh.timer"
+)
+readonly DOCKER_SOCKETS=(
+  "__PACKAGE_NAME__-docker.socket"
+  "__PACKAGE_NAME__-docker-info.socket"
+)
 
 # Native logger: logs into system journal
 log_native() {

@@ -9,13 +9,39 @@
 
 readonly PACKAGE_NAME="__PACKAGE_NAME__"
 
+log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.info -- "$1" 2>/dev/null || true; }
 log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.warning -- "$1" 2>/dev/null || true; }
+
+# Enable and start the update-agent sockets and the apt-refresh timer
+setup_socket_services() {
+  local units=("${DEBIAN_SOCKETS[@]}" "${DOCKER_SOCKETS[@]}")
+
+  log_info "Enabling and starting socket services..."
+  if systemctl daemon-reload; then
+    log_info "daemon reloaded"
+  else
+    log_warn "Failed to reload systemd daemon"
+  fi
+
+  if systemctl enable "${units[@]}"; then
+    log_info "enabled ${units[*]}"
+  else
+    log_warn "Failed to enable one or more socket/timer units"
+  fi
+
+  if systemctl start "${units[@]}"; then
+    log_info "Socket services and timers initialized"
+  else
+    log_warn "Failed to start one or more socket/timer units"
+  fi
+}
 
 main() {
   set -euo pipefail
   case "${1}" in
     configure)
-      "__PACKAGE_LIB_DIR__/socket-setup" configure
+      source "__PACKAGE_LIB_DIR__/helpers.sh"
+      setup_socket_services
       log_warn "Installed and activated multiple TCP sockets. You can manually control them inside CLI using: '${PACKAGE_NAME}-sockets <status|docker-start|docker-stop|debian-start|debian-stop>"
       ;;
     abort-upgrade|abort-remove|abort-deconfigure)

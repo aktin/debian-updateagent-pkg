@@ -111,11 +111,10 @@ prepare_service_files() {
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker-info@.service"
 
   mkdir -p "${DIR_BUILD}${PACKAGE_LIB_DIR}"
-  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/socket-setup" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/helpers.sh" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/helpers.sh"
 
   # Set proper executable permissions
-  chmod +x "${DIR_BUILD}/usr/bin/"* "${DIR_BUILD}${PACKAGE_LIB_DIR}/socket-setup"
+  chmod +x "${DIR_BUILD}/usr/bin/"*
 }
 
 prepare_management_scripts_and_files() {
