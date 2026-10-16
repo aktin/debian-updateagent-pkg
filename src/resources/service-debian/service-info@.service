@@ -12,5 +12,5 @@ After=network.target
 
 [Service]
 # no "Restart=", one instance per connection, connection already gone
-ExecStart=__PACKAGE_NAME__-info
+ExecStart=__PACKAGE_LIB_DIR__/service-info
 SyslogIdentifier=__PACKAGE_NAME__

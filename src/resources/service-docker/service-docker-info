@@ -1,6 +1,6 @@
 #!/bin/bash
 #--------------------------------------
-# Script Name:  __PACKAGE_NAME__-docker-info
+# Script Name:  service-docker-info
 # Version:      1.0
 # Authors:      whoy@ukaachen.de
 # Date:         31 Aug 26
