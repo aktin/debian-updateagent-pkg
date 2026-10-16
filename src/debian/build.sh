@@ -92,11 +92,7 @@ prepare_service_files() {
 
   # Replace placeholders
   mkdir -p "${DIR_BUILD}/usr/bin"
-  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
-  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-info"
-  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker"
-  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker-info" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-docker-info"
-  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/sockets" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}-sockets"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/sockets" > "${DIR_BUILD}/usr/bin/${PACKAGE_NAME}"
 
   mkdir -p "${DIR_BUILD}/lib/systemd/system"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service.socket" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}.socket"
@@ -111,10 +107,14 @@ prepare_service_files() {
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker-info@.service" > "${DIR_BUILD}/lib/systemd/system/${PACKAGE_NAME}-docker-info@.service"
 
   mkdir -p "${DIR_BUILD}${PACKAGE_LIB_DIR}"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/service"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-debian/service-info" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/service-info"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/service-docker"
+  sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/service-docker-info" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/service-docker-info"
   sed "${SED_ARGS[@]}" "${DIR_RESOURCES}/service-docker/helpers.sh" > "${DIR_BUILD}${PACKAGE_LIB_DIR}/helpers.sh"
 
   # Set proper executable permissions
-  chmod +x "${DIR_BUILD}/usr/bin/"*
+  chmod +x "${DIR_BUILD}/usr/bin/"* "${DIR_BUILD}${PACKAGE_LIB_DIR}/service"*
 }
 
 prepare_management_scripts_and_files() {

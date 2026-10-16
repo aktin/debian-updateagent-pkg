@@ -12,5 +12,5 @@ After=network.target
 
 [Service]
 # no "Restart=", one instance per connection, connection already gone when retry initiates
-ExecStart=__PACKAGE_NAME__-docker
+ExecStart=__PACKAGE_LIB_DIR__/service-docker
 SyslogIdentifier=__PACKAGE_NAME__

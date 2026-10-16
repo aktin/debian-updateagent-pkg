@@ -44,7 +44,8 @@ units. No manual step is required. Ownership of the update directories is not ha
   - `<compose_project>` is the docker-compose project name of the DWH stack being updated. The
     directory is inside that stack's own `aktin_data` volume, so the files below live alongside
     the DWH's own data, not on the host's `/var/lib/aktin`.
-- Service scripts: `/usr/bin/aktin-notaufnahme-updateagent`, `-info`, `-docker`, `-docker-info`
+- Service scripts: `/usr/lib/aktin-notaufnahme-updateagent/service`, `service-info`, `service-docker`, `service-docker-info`
+- Socket control CLI: `/usr/bin/aktin-notaufnahme-updateagent`
 - Socket configurations: `/lib/systemd/system`
 - APT hooks: `/etc/apt/apt.conf.d/99aktin-notaufnahme-updateagent-info` (Debian-native),
   `/etc/apt/apt.conf.d/99aktin-notaufnahme-updateagent-docker-info` (Docker)
