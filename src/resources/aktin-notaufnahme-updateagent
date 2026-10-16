@@ -1,0 +1,44 @@
+#!/bin/bash
+#--------------------------------------
+# Script Name:  __PACKAGE_NAME__
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         16 Okt 26
+# Purpose:      Show, start or stop the debian or docker socket group on the host
+#--------------------------------------
+
+source "__PACKAGE_LIB_DIR__/helpers.sh"
+
+usage() {
+  echo "Usage: __PACKAGE_NAME__ <status|start|stop> <docker|debian>" >&2
+  exit 1
+}
+
+# Prints enablement and activity state of each unit. Uses is-enabled/is-active instead of
+# list-units, because list-units omits units that are disabled and stopped (not loaded).
+print_status() {
+  local unit
+  for unit in "$@"; do
+    printf '%-50s %-10s %s\n' "${unit}" "$(systemctl is-enabled "${unit}")" "$(systemctl is-active "${unit}")"
+  done
+}
+
+main() {
+  local operation="${1:-}" group="${2:-}"
+  local units
+
+  case "${group}" in
+    debian) units=("${DEBIAN_SOCKETS[@]}") ;;
+    docker) units=("${DOCKER_SOCKETS[@]}") ;;
+    *) usage ;;
+  esac
+
+  case "${operation}" in
+    status) print_status "${units[@]}" ;;
+    start)  systemctl enable --now "${units[@]}" ;;
+    stop)   systemctl disable --now "${units[@]}" ;;
+    *) usage ;;
+  esac
+}
+
+main "$@"
