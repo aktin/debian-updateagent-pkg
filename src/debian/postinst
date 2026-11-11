@@ -1,62 +1,65 @@
 #!/bin/bash
 #--------------------------------------
 # Script Name:  postinst
-# Version:      1.0
-# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de
-# Date:         14 Nov 24
-# Purpose:      Configures the package after files are unpacked by initializing services, databases, and required configurations to make the package operational.
+# Version:      2.0
+# Authors:      skurka@ukaachen.de, akombeiz@ukaachen.de, whoy@ukaachen.de
+# Date:         13 Okt 26
+# Purpose:      Ensures central logging is active. Initiates socket creation.
 #--------------------------------------
 
-log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
-log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
-log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
-log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+readonly PACKAGE_NAME="__PACKAGE_NAME__"
 
-readonly OPERATION="${1}"
+log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.info -- "$1" 2>/dev/null || true; }
+log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; logger -t "${PACKAGE_NAME}" -p user.warning -- "$1" 2>/dev/null || true; }
 
-init_update_directory() {
-  log_info "Creating AKTIN update directory..."
-  if ! mkdir -p /var/lib/aktin/update; then
-    log_error "Failed to create update directory"
-    exit 1
-  fi
-  log_success "Update directory created"
-}
-
-set_wildfly_permissions() {
-  log_info "Setting Wildfly permissions for update directory..."
-  if ! chown -R wildfly:wildfly /var/lib/aktin/update; then
-    log_error "Failed to set Wildfly permissions"
-    exit 1
-  fi
-  log_success "Wildfly permissions set successfully"
-}
-
+# Enable the update-agent sockets and the apt-refresh timer on a fresh install (empty previous
+# version), then start every enabled unit. On upgrade, groups the admin disabled stay disabled.
 setup_socket_services() {
-  log_info "Configuring socket services..."
-  if ! systemctl daemon-reload; then
-    log_error "Failed to reload systemd daemon"
-    exit 1
+  local previous_version="$1"
+  local units=("${DEBIAN_SOCKETS[@]}" "${DOCKER_SOCKETS[@]}")
+  local enabled_units=() unit
+
+  log_info "Enabling and starting socket services..."
+  if systemctl daemon-reload; then
+    log_info "daemon reloaded"
+  else
+    log_warn "Failed to reload systemd daemon"
   fi
-  if ! systemctl enable __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
-    log_error "Failed to enable socket services"
-    exit 1
+
+  if [[ -z "${previous_version}" ]]; then
+    if systemctl enable "${units[@]}"; then
+      log_info "enabled ${units[*]}"
+    else
+      log_warn "Failed to enable one or more socket/timer units"
+    fi
   fi
-  if ! systemctl start __PACKAGE_NAME__.socket __PACKAGE_NAME__-info.socket; then
-    log_error "Failed to start socket services"
-    exit 1
+
+  for unit in "${units[@]}"; do
+    if systemctl is-enabled --quiet "${unit}"; then
+      enabled_units+=("${unit}")
+    fi
+  done
+  if [[ ${#enabled_units[@]} -eq 0 ]]; then
+    log_info "No socket/timer units enabled; nothing to start"
+    return
   fi
-  log_success "Socket services initialized"
+
+  if systemctl start "${enabled_units[@]}"; then
+    log_info "started ${enabled_units[*]}"
+  else
+    log_warn "Failed to start one or more socket/timer units"
+  fi
 }
 
 main() {
   set -euo pipefail
-  case "$OPERATION" in
+  case "${1}" in
     configure)
-      # Runs during installation/upgrade after files have been unpacked
-      init_update_directory
-      set_wildfly_permissions
-      setup_socket_services
+      source "__PACKAGE_LIB_DIR__/helpers.sh"
+      setup_socket_services "${2:-}"
+      echo "Installed and activated multiple TCP sockets. You can manually control them inside CLI using: '${PACKAGE_NAME} <status|start|stop> <docker|debian>'"
+      ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
       ;;
   esac
 }

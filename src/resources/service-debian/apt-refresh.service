@@ -1,0 +1,18 @@
+# ----------------------------------------------
+# Unit Name:    __PACKAGE_NAME__-apt-refresh.service
+# Version:      1.0
+# Authors:      whoy@ukaachen.de
+# Date:         31 Aug 26
+# Purpose:      Refresh the APT package index once per run. Triggered by
+#               __PACKAGE_NAME__-apt-refresh.timer.
+# ----------------------------------------------
+
+[Unit]
+Description=AKTIN Update Agent APT index refresh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/apt-get update
+SyslogIdentifier=__PACKAGE_NAME__
